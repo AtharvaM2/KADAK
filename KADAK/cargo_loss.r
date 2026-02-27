@@ -2,6 +2,7 @@ library(ggplot2)
 library(readxl)
 library(dplyr)
 cargo_data <- read_excel("KADAK/srcsc-2026-claims-cargo.xlsx")
+cargo_data
 
 #clean data to be consistent with given value range
 cargo_data <- cargo_data |>
