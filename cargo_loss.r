@@ -215,6 +215,3 @@ sev_model <- glm(
 )
 
 summary(sev_model)
-
-
-hello its anuva 
