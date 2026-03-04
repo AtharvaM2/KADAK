@@ -395,4 +395,47 @@ gamma_sev <- glm(
 
 summary(gamma_sev)
 
+#######################################
+# Monte Carlo Simulation
+#######################################
+set.seed(123)
+n_sim <- 500000
 
+# Predict mean frequency
+lambda_hat <- predict(zinb_model, type = "response")
+
+# Use average lambda
+lambda_mean <- mean(lambda_hat)
+
+# Simulate frequency
+freq_sim <- rnbinom(n_sim,
+                    size = zinb_model$theta,
+                    mu = lambda_mean)
+
+# Severity parameters
+sev_shape <- 1 / summary(gamma_sev)$dispersion
+sev_scale <- mean(worker_data_sev$claim_amount) / sev_shape
+
+aggregate_loss <- numeric(n_sim)
+
+for(i in 1:n_sim){
+  if(freq_sim[i] > 0){
+    aggregate_loss[i] <-
+      sum(rgamma(freq_sim[i],
+                 shape = sev_shape,
+                 scale = sev_scale))
+  }
+}
+
+
+WC_VaR_99 <- quantile(aggregate_loss, 0.99)
+WC_VaR_99
+
+WC_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
+WC_TVaR_99
+
+WC_mean_loss <- mean(aggregate_loss)
+WC_mean_loss
+
+WC_sd_loss   <- sd(aggregate_loss)
+WC_sd_loss
