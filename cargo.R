@@ -22,7 +22,7 @@ cargo_full <- cargo_freq |>
 
 cargo_full <- cargo_freq |>
   inner_join(cargo_sev,
-            by = c("policy_id", "shipment_id"))
+             by = c("policy_id", "shipment_id"))
 
 #clean data to be consistent with given value range
 cargo_freq <- cargo_freq |>
@@ -54,7 +54,7 @@ cargo_sev <- cargo_sev |>
     exposure >= 0 & exposure <= 1,
     claim_amount >= 31000 & claim_amount <= 678000000
   )
- 
+
 # Clean variable names (removes unwanted characters from strings _???XXXX)
 cargo_freq <- cargo_freq |>
   mutate(across(
@@ -691,5 +691,4 @@ TVaR_99 <- mean(aggregate_loss[aggregate_loss > VaR_99])
 
 mean_loss <- mean(aggregate_loss)
 sd_loss   <- sd(aggregate_loss)
-
 
