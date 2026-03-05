@@ -493,5 +493,67 @@ WC_VaR_99
 WC_TVaR_99
 
 #######################################
+# Tail Dependence
+#######################################
+library(copula)
+freq <- worker_data_freq$claim_count
+freq_pos <- freq[freq > 0]
+sev <- worker_data_sev$claim_amount
+n <- min(length(freq_pos), length(sev))
+
+freq_dep <- freq_pos[1:n]
+sev_dep  <- sev[1:n]
+dep_data <- data.frame(freq_dep, sev_dep)
+u <- rank(dep_data$freq_dep) / (n + 1)
+v <- rank(dep_data$sev_dep)  / (n + 1)
+
+uv_data <- cbind(u, v)
+
+t_cop <- tCopula(dim = 2)
+
+fit_cop <- fitCopula(t_cop, uv_data, method = "ml")
+
+summary(fit_cop)
+
+set.seed(123)
+
+n_sim <- 500000
+
+cop_sim <- rCopula(n_sim, fit_cop@copula)
+
+u_sim <- cop_sim[,1]
+v_sim <- cop_sim[,2]
+
+lambda_hat <- predict(zinb_model, type = "response")
+lambda_mean <- mean(lambda_hat)
+
+freq_sim <- qnbinom(u_sim,
+                    size = zinb_model$theta,
+                    mu = sample(lambda_hat, n_sim, replace = TRUE))
+
+sev_shape <- 1 / summary(gamma_sev)$dispersion
+sev_scale <- mean(worker_data_sev$claim_amount) / sev_shape
+
+sev_sim <- qgamma(v_sim,
+                  shape = sev_shape,
+                  scale = sev_scale)
+
+aggregate_loss <- numeric(n_sim)
+
+for(i in 1:n_sim){
+  if(freq_sim[i] > 0){
+    aggregate_loss[i] <- sum(rgamma(freq_sim[i],
+                                    shape = sev_shape,
+                                    scale = sev_scale))
+  }
+}
+
+WC_mean_loss <- mean(aggregate_loss)
+WC_sd_loss   <- sd(aggregate_loss)
+
+WC_VaR_99  <- quantile(aggregate_loss, 0.99)
+WC_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
+lambda(fit_cop@copula)
+#######################################
 # Stress testing
 #######################################
