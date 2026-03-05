@@ -439,3 +439,59 @@ WC_mean_loss
 
 WC_sd_loss   <- sd(aggregate_loss)
 WC_sd_loss
+
+#######################################
+# Monte Carlo Simulation Pt. 2
+#######################################
+
+set.seed(123)
+
+n_sim <- 10000   # 10k is usually enough for stable 99% VaR
+n_pol <- length(lambda_hat)
+
+# --- 1. Frequency model inputs ---
+lambda_hat <- predict(zinb_model, type = "response")
+theta_hat  <- zinb_model$theta
+
+# --- 2. Severity model inputs ---
+sev_shape <- 1 / summary(gamma_sev)$dispersion
+sev_mean  <- mean(worker_data_sev$claim_amount)
+sev_scale <- sev_mean / sev_shape
+
+# --- 3. Monte Carlo Simulation ---
+aggregate_loss <- numeric(n_sim)
+
+for(s in 1:n_sim){
+  
+  # Simulate frequency for ALL policies
+  freq_sim <- rnbinom(n_pol,
+                      size = theta_hat,
+                      mu   = lambda_hat)
+  
+  total_claims <- sum(freq_sim)
+  
+  if(total_claims > 0){
+    
+    # Simulate all severities in one vectorised draw
+    severities <- rgamma(total_claims,
+                         shape = sev_shape,
+                         scale = sev_scale)
+    
+    aggregate_loss[s] <- sum(severities)
+  }
+}
+
+# --- 4. Risk Metrics ---
+WC_mean_loss <- mean(aggregate_loss)
+WC_sd_loss   <- sd(aggregate_loss)
+WC_VaR_99    <- quantile(aggregate_loss, 0.99)
+WC_TVaR_99   <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
+
+WC_mean_loss
+WC_sd_loss
+WC_VaR_99
+WC_TVaR_99
+
+#######################################
+# Stress testing
+#######################################
