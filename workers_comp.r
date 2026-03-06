@@ -148,7 +148,8 @@ ggplot(claims_summary,
 #3. Frequency of Claims adjusted per unit of exposure
 ########################################
 # Error here saying object 'occupation' not found
-group_by(occupation, solar_system) |>
+claim_rate_summary <- worker_data_freq |>
+  group_by(occupation, solar_system) |>
   summarise(
     total_claims = sum(claim_count, na.rm = TRUE),
     total_exposure = sum(exposure, na.rm = TRUE),
@@ -218,7 +219,7 @@ injury_occupation_counts <- worker_data_sev |>
   count(occupation, injury_type)
 
 ggplot(injury_occupation_counts, aes(x = fct_reorder(occupation, n, .fun = sum),
-                                    y = fct_reorder(injury_type, n, .fun = sum),
+                                     y = fct_reorder(injury_type, n, .fun = sum),
                                      fill = n)) +
   geom_tile(color = "white") +
   scale_fill_gradient(low = blue_palette[1], high = blue_palette[5]) +
@@ -235,14 +236,14 @@ ggplot(worker_data_sev,
            fill = injury_type)) +
   geom_bar(color = "white", linewidth = 0.2) + facet_wrap(~ solar_system) +
   scale_fill_manual(values = blue_palette7) +
-
+  
   labs(
     title = "Injury Type Distribution by Occupation Across Solar Systems",
     x = "Occupation",
     y = "Number of Claims",
     fill = "Injury Type"
   ) +
-
+  
   theme_minimal(base_size = 12) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
@@ -447,11 +448,12 @@ WC_sd_loss
 set.seed(123)
 
 n_sim <- 10000   # 10k is usually enough for stable 99% VaR
-n_pol <- length(lambda_hat)
 
 # --- 1. Frequency model inputs ---
 lambda_hat <- predict(zinb_model, type = "response")
 theta_hat  <- zinb_model$theta
+
+n_pol <- length(lambda_hat)
 
 # --- 2. Severity model inputs ---
 sev_shape <- 1 / summary(gamma_sev)$dispersion
@@ -554,6 +556,40 @@ WC_sd_loss   <- sd(aggregate_loss)
 WC_VaR_99  <- quantile(aggregate_loss, 0.99)
 WC_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
 lambda(fit_cop@copula)
+
+##Testing different copula 
+
+#intitial parameter guesses 
+norm_cop <- normalCopula(param = 0.5, dim = 2)     # Gaussian
+clay_cop <- claytonCopula(param = 2, dim = 2)      # Lower tail dependence
+gumb_cop <- gumbelCopula(param = 2, dim = 2)       # Upper tail dependence
+t_cop    <- tCopula(param = 0.5, df = 4, dim = 2)  # t-copula, symmetric tails
+
+fit_norm <- fitCopula(norm_cop, uv_data, method = "ml")
+fit_clay <- fitCopula(clay_cop, uv_data, method = "ml")
+fit_gumb <- fitCopula(gumb_cop, uv_data, method = "ml")
+fit_t    <- fitCopula(t_cop, uv_data, method = "ml")
+
+n_sim <- 5000  # smaller for plotting
+
+sim_norm <- rCopula(n_sim, fit_norm@copula)
+sim_clay <- rCopula(n_sim, fit_clay@copula)
+sim_gumb <- rCopula(n_sim, fit_gumb@copula)
+sim_t    <- rCopula(n_sim, fit_t@copula)
+
+#plots of copula 
+par(mfrow = c(2,2)) 
+
+plot(sim_norm, main = "Gaussian Copula", xlab = "Frequency", ylab = "Severity")
+plot(sim_clay, main = "Clayton Copula", xlab = "Frequency", ylab = "Severity")
+plot(sim_gumb, main = "Gumbel Copula", xlab = "Frequency", ylab = "Severity")
+plot(sim_t, main = "t-Copula", xlab = "Frequency", ylab = "Severity")
+
+
+#extreme scenario risk 
+quantile(aggregate_loss, 0.995) ##solvency risk 
+quantile(aggregate_loss, 0.999) ##catastrophic risk 
+
 #######################################
 # Stress testing
 #######################################
