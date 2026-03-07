@@ -6,15 +6,19 @@ library(scales)
 library(tidyr)
 library(stringr)
 library(MASS)
-install.packages("fpp3")
 library(fpp3)
+library(pscl)
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(VineCopula)
 
 # -----------------------------
 # Load Data
 # -----------------------------
 
-cargo_freq <- read_excel("srcsc-2026-claims-cargo.xlsx", sheet = 1)
-cargo_sev  <- read_excel("srcsc-2026-claims-cargo.xlsx", sheet = 2)
+cargo_freq <- read_excel("KADAK/srcsc-2026-claims-cargo.xlsx", sheet = 1)
+cargo_sev  <- read_excel("KADAK/srcsc-2026-claims-cargo.xlsx", sheet = 2)
 
 cargo_full <- cargo_freq |>
   left_join(cargo_sev,
@@ -326,6 +330,16 @@ ggplot(cargo_type_sev,
        x = "Cargo Type",
        y = "Average Claim Amount")
 
+
+# Cargo Severity Pie Chart 
+ggplot(cargo_type_sev, aes(x = "", y = avg_severity, fill = reorder(cargo_type, -avg_severity))) +
+  geom_col(width = 1, color = "white") + 
+  coord_polar(theta = "y") +             
+  theme_void() +                         # Remove axis, grid, background
+  labs(title = "Average Claim Severity by Cargo Type",
+       fill = "Cargo Type") +
+  theme(plot.title = element_text(hjust = 0.5))
+
 # Cargo Type vs Cargo Value
 ggplot(cargo_freq, aes(x = factor(cargo_type), y = cargo_value,
                        fill = factor(cargo_type))) +
@@ -342,6 +356,63 @@ ggplot(cargo_freq, aes(x = factor(cargo_type), y = cargo_value,
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1)
   )
+
+
+# Separate Data in Cargo Types
+plot_data <- cargo_sev %>%
+  mutate(cargo_type = tolower(cargo_type)) %>%
+  filter(cargo_type %in% c("supplies", "titanium", "rare_earths", "cobalt", 
+                           "lithium", "gold", "platinum", "na"))
+
+# 2. Smooth Filled Plot with Claim Counts
+ggplot(plot_data, aes(x = claim_amount, fill = cargo_type, color = cargo_type)) +
+  geom_density(aes(y = after_stat(count)), alpha = 0.3, size = 0.8) + 
+  
+  scale_x_log10(labels = scales::label_comma(), 
+                breaks = c(1000, 10000, 100000, 1000000, 10000000, 100000000, 500000000)) +
+  
+  scale_fill_manual(values = c(
+    "gold" = "#D4AF37", "platinum" = "#7F7F7F", "lithium" = "#8E44AD",
+    "cobalt" = "#2980B9", "rare_earths" = "#27AE60", "titanium" = "#E67E22",
+    "supplies" = "#95A5A6", "na" = "#34495E"
+  )) +
+  scale_color_manual(values = c(
+    "gold" = "#D4AF37", "platinum" = "#7F7F7F", "lithium" = "#8E44AD",
+    "cobalt" = "#2980B9", "rare_earths" = "#27AE60", "titanium" = "#E67E22",
+    "supplies" = "#95A5A6", "na" = "#34495E"
+  )) +
+  
+  labs(
+    title = "Smooth Distribution of Claim Counts",
+    subtitle = "Relative frequency of claims by dollar amount (Log Scale)",
+    x = "Claim Amount",
+    y = "Number of Claims",
+    fill = "Cargo Type",
+    color = "Cargo Type"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    plot.title = element_text(face = "bold", size = 14),
+    panel.grid.minor = element_blank()
+  )
+
+
+# Create the Summary Table
+cargo_summary_table <- plot_data |>
+  group_by(Cargo = toupper(cargo_type)) |>
+  summarise(
+    `Total Claims` = n(),
+    `Average Severity` = mean(claim_amount),
+    `Median Severity` = median(claim_amount),
+    `Min Claim` = min(claim_amount),
+    `Max Claim` = max(claim_amount),
+    `Total Loss Value` = sum(claim_amount)
+  ) |>
+  arrange(desc(`Average Severity`))
+
+# To view the table 
+print(cargo_summary_table)
 
 # Container Type vs Frequency 
 freq_summary_container <- cargo_freq |>
@@ -576,82 +647,121 @@ ggplot(vessel_sev, aes(vessel_band, mean_severity)) +
 
 ######################################################################
 # 5. Forward Stepwise and Backwards Stepwise Functions
+######################################################################
 
+# Data Cleaning
 quantile(cargo_sev$claim_amount, probs = c(0.95,0.99,0.995))
 
-full_nb <- glm.nb(
-  claim_count ~ route_risk + solar_radiation +
-    debris_density + distance + transit_duration +
+model_cargo_freq <- cargo_freq
+model_cargo_sev <- cargo_sev
+
+
+# Fix exposure: replace zeros or NAs
+model_cargo_freq$exposure[model_cargo_freq$exposure <= 0 | is.na(model_cargo_freq$exposure)] <- 0.001
+model_cargo_freq$claim_count <- round(model_cargo_freq$claim_count)
+model_cargo_freq$exposure[model_cargo_freq$exposure <= 0] <- 0.001
+model_cargo_freq$log_exposure <- log(model_cargo_freq$exposure)
+model_cargo_freq <- model_cargo_freq[!is.na(model_cargo_freq$claim_count), ]
+
+
+predictors <- c("cargo_type","cargo_value","weight",
+                "route_risk","distance",
+                "transit_duration","pilot_experience","vessel_age",
+                "container_type","solar_radiation","debris_density",
+                "exposure")
+
+# Remove any rows with NA in these columns
+model_cargo_freq <- model_cargo_freq %>%
+  dplyr::filter(!if_any(all_of(predictors), is.na))
+
+
+#######################################
+# Forward Stepwise and Backwards Stepwise Functions 
+#######################################
+null_freq <- glm(
+  claim_count ~ 1 + offset(log(exposure)),
+  family = poisson(link = "log"),
+  data = model_cargo_freq
+)
+
+full_freq <- glm(
+  claim_count ~ cargo_type + cargo_value + weight + route_risk + solar_radiation +
+    container_type + debris_density + distance + transit_duration +
     pilot_experience + vessel_age + weight +
     offset(log(exposure)),
-  data = cargo_freq
+  family = poisson(link = "log"),
+  data = model_cargo_freq
 )
+summary(full_freq)
 
-null_nb <- glm.nb(
-  claim_count ~ 1 + offset(log(exposure)),
-  data = cargo_freq
-)
-
-step_forward <- stepAIC(null_nb,
-                        scope = list(lower = null_nb,
-                                     upper = full_nb),
-                        direction = "forward")
-summary(step_forward)
-
-step_backward <- stepAIC(full_nb,
+step_backward <- stepAIC(full_freq,
                          direction = "backward")
 summary(step_backward)
 
+upper_formula <- claim_count ~ cargo_type + cargo_value + weight + route_risk + solar_radiation +
+  container_type + debris_density + distance + transit_duration +
+  pilot_experience + vessel_age + weight +
+  offset(log(exposure))
 
-AIC(freq_model_nb, step_forward, step_backward)
+# Forward stepwise selection
+step_forward <- stepAIC(
+  null_freq,
+  scope = list(
+    lower = ~1,
+    upper = upper_formula
+  ),
+  direction = "forward"
+)
+
+summary(step_forward)
+
+AIC(full_freq, step_forward, step_backward)
 
 ######################################################################
 # 6. Frequency GLM
 
 freq_model <- glm(
-  claim_count ~ route_risk + solar_radiation + debris_density +
-    distance + transit_duration + pilot_experience +
-    vessel_age + weight,
+  claim_count ~ route_risk + pilot_experience + solar_radiation + debris_density +
+    container_type + cargo_type + cargo_value + offset(log(exposure)),
   family = poisson(link = "log"),
   offset = log(exposure),
-  data = cargo_freq
+  data = model_cargo_freq
 )
 
 summary(freq_model)
 
 ### Negative binomial model
 freq_model_nb <- glm.nb(
-  claim_count ~ route_risk + solar_radiation + debris_density +
-    distance + transit_duration + pilot_experience +
-    vessel_age + weight + offset(log(exposure)),
-  data = cargo_freq
+  claim_count ~ route_risk + pilot_experience + solar_radiation + debris_density +
+    container_type + cargo_type + cargo_value + offset(log(exposure)),
+  data = model_cargo_freq
 )
 
 summary(freq_model_nb)
 
-
-freq_model_nb_2 <- glm.nb(
-  claim_count ~ route_risk + solar_radiation + debris_density +
-    distance + transit_duration + pilot_experience + container_type + 
-    vessel_age + weight + cargo_type + cargo_value + offset(log(exposure)),
-  data = cargo_freq
-)
-
-summary(freq_model_nb_2)
+AIC(freq_model_nb, step_forward, step_backward)
 
 ######################################################################
 # 7. Severity Model
 
+model_cargo_sev$claim_amount[model_cargo_sev$claim_amount <= 0] <- 0.01
+model_cargo_sev <- na.omit(model_cargo_sev)
+
+numeric_vars <- c("route_risk", "solar_radiation", "debris_density",
+                  "cargo_value", "weight", "vessel_age",
+                  "distance", "transit_duration", "pilot_experience")
+
+model_cargo_sev[numeric_vars] <- scale(model_cargo_sev[numeric_vars])
+
 sev_model <- glm(
   claim_amount ~ route_risk + solar_radiation + debris_density +
     cargo_value + weight + vessel_age +  distance + transit_duration + pilot_experience + container_type + 
-    cargo_type + cargo_value,
+    cargo_type,
   family = Gamma(link = "log"),
-  data = cargo_sev
+  data = model_cargo_sev
 )
 
 summary(sev_model)
-
 
 ######################################################################
 # 8. Monte Carlo Simulation for Aggregate Losses
@@ -659,14 +769,14 @@ set.seed(123)
 n_sim <- 50000
 
 # Predict mean frequency
-lambda_hat <- predict(step_backward, type = "response")
+lambda_hat <- predict(freq_model_nb, type = "response")
 
 # Use average lambda
 lambda_mean <- mean(lambda_hat)
 
 # Simulate frequency
 freq_sim <- rnbinom(n_sim,
-                    size = step_backward$theta,
+                    size = freq_model_nb$theta,
                     mu = lambda_mean)
 
 # Severity parameters
@@ -685,11 +795,292 @@ for(i in 1:n_sim){
 }
 
 
-VaR_99 <- quantile(aggregate_loss, 0.99)
+CL_VaR_99 <- quantile(aggregate_loss, 0.99)
+CL_VaR_99
 
-TVaR_99 <- mean(aggregate_loss[aggregate_loss > VaR_99])
+CL_TVaR_99 <- mean(aggregate_loss[aggregate_loss > VaR_99])
+CL_TVaR_99
 
-mean_loss <- mean(aggregate_loss)
-sd_loss   <- sd(aggregate_loss)
+CL_mean_loss <- mean(aggregate_loss)
+CL_mean_loss
+
+CL_sd_loss   <- sd(aggregate_loss)
+CL_sd_loss
 
 
+#######################################
+# Monte Carlo Simulation Pt. 2
+#######################################
+
+set.seed(123)
+
+n_sim <- 10000   # 10k is usually enough for stable 99% VaR
+
+# --- 1. Frequency model inputs ---
+lambda_hat_sev <- predict(freq_model_nb, type = "response")
+theta_hat_sev  <- freq_model_nb$theta
+
+n_pol <- length(lambda_hat_sev)
+
+# --- 2. Severity model inputs ---
+# Severity parameters
+sev_shape <- 1 / summary(sev_model)$dispersion
+sev_scale <- mean(cargo_sev$claim_amount) / sev_shape
+
+aggregate_loss <- numeric(n_sim)
+
+# --- 3. Monte Carlo Simulation ---
+aggregate_loss <- numeric(n_sim)
+
+for(s in 1:n_sim){
+  
+  # Simulate frequency for ALL policies
+  freq_sim <- rnbinom(n_pol,
+                      size = theta_hat_sev,
+                      mu   = lambda_hat_sev)
+  
+  total_claims <- sum(freq_sim)
+  
+  if(total_claims > 0){
+    
+    # Simulate all severities in one vectorised draw
+    severities <- rgamma(total_claims,
+                         shape = sev_shape,
+                         scale = sev_scale)
+    
+    aggregate_loss[s] <- sum(severities)
+  }
+}
+
+# --- 4. Risk Metrics ---
+sev_mean_loss <- mean(aggregate_loss)
+sev_sd_loss   <- sd(aggregate_loss)
+sev_VaR_99    <- quantile(aggregate_loss, 0.99)
+sev_TVaR_99   <- mean(aggregate_loss[aggregate_loss > sev_VaR_99])
+
+sev_mean_loss
+sev_sd_loss
+sev_VaR_99
+sev_TVaR_99
+
+total_sev <- sum(cargo_sev$claim_amount)
+gold_sev <- sum(cargo_sev$claim_amount) - sum(cargo_sev$claim_amount[cargo_sev$cargo_type != "gold"], na.rm = TRUE)
+platinum_sev <- sum(cargo_sev$claim_amount) - sum(cargo_sev$claim_amount[cargo_sev$cargo_type != "platinum"], na.rm = TRUE)
+
+gold_sev/total_sev
+platinum_sev/total_sev
+1 - (gold_sev + platinum_sev)/total_sev
+
+
+total_freq <- sum(cargo_freq$claim_count)
+gold_freq <- sum(cargo_freq$claim_count) - sum(cargo_freq$claim_count[cargo_freq$cargo_type != "gold"], na.rm = TRUE)
+platinum_freq <- sum(cargo_freq$claim_count) - sum(cargo_freq$claim_count[cargo_freq$cargo_type != "platinum"], na.rm = TRUE)
+
+gold_freq/total_freq
+platinum_freq/total_freq
+1 - (gold_freq + platinum_freq)/total_freq
+##################################################################
+# 9. Correlated Multi-Solar System Shock Model
+##################################################################
+common_shock <- rlnorm(n_sim, meanlog = 0, sdlog = 0.25)
+
+portfolio_loss <-
+  (agg_cargo +
+     agg_equipment +
+     agg_wc +
+     agg_bi) * common_shock
+
+VaR_portfolio_99 <- quantile(portfolio_loss, 0.99)
+
+VaR_sum <- VaR_cargo + VaR_equipment + VaR_wc + VaR_bi
+
+diversification_benefit <- VaR_sum - VaR_portfolio_99 
+
+##################################################################
+# 10. Tail Behaviour Observations
+##################################################################
+library(evir)
+
+# Hill estimator
+hill_est <- hill(cargo_sev$claim_amount, start = 100)
+plot(hill_est)
+
+# Mean Excess Plot
+meplot(cargo_sev$claim_amount)
+
+# Fit Generalized Pareto to upper tail
+threshold <- quantile(cargo_sev$claim_amount, 0.95)
+
+gpd_fit <- gpd(cargo_sev$claim_amount, threshold)
+summary(gpd_fit)
+
+
+#######################################
+# Tail Dependence
+####################################### 
+
+# Install if needed: install.packages("VineCopula")
+library(VineCopula)
+
+freq <- cargo_freq$claim_count
+freq_pos <- freq[freq > 0]
+sev <- cargo_sev$claim_amount
+n <- min(length(freq_pos), length(sev))
+
+# Prepare data
+dep_data <- data.frame(freq_dep = freq_pos[1:n], sev_dep = sev[1:n])
+u <- rank(dep_data$freq_dep) / (n + 1)
+v <- rank(dep_data$sev_dep)  / (n + 1)
+
+# --- 1. Automatic Copula Selection and Fitting ---
+# This replaces fitCopula. It will test Gaussian, t, Clayton, Gumbel, etc., 
+# and pick the best one based on AIC/BIC.
+fit_cop <- BiCopSelect(u, v, familyset = NA) # NA tests all available families
+
+summary(fit_cop)
+
+# --- 2. Simulation ---
+set.seed(123)
+n_sim <- 500000
+
+# Simulate from the fitted bivariate copula
+sim_data <- BiCopSim(n_sim, fit_cop$family, fit_cop$par, fit_cop$par2)
+u_sim <- sim_data[,1]
+v_sim <- sim_data[,2]
+
+# --- 3. Marginal Transformations ---
+lambda_hat <- predict(freq_model_nb, type = "response")
+
+# Frequency simulation
+freq_sim <- qnbinom(u_sim,
+                    size = freq_model_nb$theta,
+                    mu = sample(lambda_hat, n_sim, replace = TRUE))
+
+# Severity simulation
+sev_shape <- 1 / summary(sev_model)$dispersion
+sev_scale <- mean(cargo_sev$claim_amount) / sev_shape
+
+# --- 4. Aggregate Loss Calculation ---
+# Optimization: Using a vectorized approach for Gamma simulation is much faster than a loop
+aggregate_loss <- sapply(freq_sim, function(n_claims) {
+  if(n_claims > 0) {
+    return(sum(rgamma(n_claims, shape = sev_shape, scale = sev_scale)))
+  } else {
+    return(0)
+  }
+})
+
+# --- 5. Risk Metrics ---
+CL_VaR_99_copula <- quantile(aggregate_loss, 0.99)
+CL_TVaR_99_copula <- mean(aggregate_loss[aggregate_loss > CL_VaR_99_copula])
+
+# --- 6. Plotting Different Copulas (Comparison) ---
+# To manually simulate specific families for your plots:
+# Family codes: 1 = Gaussian, 2 = t, 3 = Clayton, 4 = Gumbel
+par(mfrow = c(2,2))
+
+# Gaussian (Family 1)
+fit_norm <- BiCopEst(u, v, family = 1)
+sim_norm <- BiCopSim(5000, 1, fit_norm$par)
+plot(sim_norm, main = "Gaussian Copula", xlab = "U", ylab = "V", pch=20, col=rgb(0,0,1,0.2))
+
+# Clayton (Family 3)
+fit_clay <- BiCopEst(u, v, family = 3)
+sim_clay <- BiCopSim(5000, 3, fit_clay$par)
+plot(sim_clay, main = "Clayton Copula", xlab = "U", ylab = "V", pch=20, col=rgb(1,0,0,0.2))
+
+# Gumbel (Family 4)
+fit_gumb <- BiCopEst(u, v, family = 4)
+sim_gumb <- BiCopSim(5000, 4, fit_gumb$par)
+plot(sim_gumb, main = "Gumbel Copula", xlab = "U", ylab = "V", pch=20, col=rgb(0,1,0,0.2))
+
+# t-Copula (Family 2)
+fit_t <- BiCopEst(u, v, family = 2)
+sim_t <- BiCopSim(5000, 2, fit_t$par, fit_t$par2)
+plot(sim_t, main = "t-Copula", xlab = "U", ylab = "V", pch=20, col=rgb(0.5,0,0.5,0.2))
+
+
+#extreme scenario risk 
+quantile(aggregate_loss, 0.995) ##solvency risk 
+quantile(aggregate_loss, 0.999) ##catastrophic risk 
+
+
+#############################################################################
+# Separate Model for Gold and Platinum
+# --- Segment 1: High-Value (Gold & Platinum) ---
+freq_high_value <- model_cargo_freq %>% 
+  filter(cargo_type %in% c("gold", "platinum"))
+
+sev_high_value <- model_cargo_sev %>% 
+  filter(cargo_type %in% c("gold", "platinum"))
+
+# --- Segment 2: Attritional (Everything Else) ---
+freq_attritional <- model_cargo_freq %>% 
+  filter(!(cargo_type %in% c("gold", "platinum")))
+
+sev_attritional <- model_cargo_sev %>% 
+  filter(!(cargo_type %in% c("gold", "platinum")))
+
+
+# Fit High-Value Severity
+sev_model_high <- glm(claim_amount ~ route_risk + solar_radiation + debris_density +
+                        cargo_value + weight + vessel_age +  distance + transit_duration + pilot_experience + container_type + 
+                        cargo_type,
+                      family = Gamma(link = "log"), data = sev_high_value)
+summary(sev_model_high)
+
+# Fit Attritional Severity
+sev_model_attr <- glm(claim_amount ~ route_risk + solar_radiation + debris_density +
+                        cargo_value + weight + vessel_age +  distance + transit_duration + pilot_experience + container_type + 
+                        cargo_type,
+                      family = Gamma(link = "log"), data = sev_attritional)
+summary(sev_model_attr)
+
+# Get parameters for Simulation
+shape_high <- 1 / summary(sev_model_high)$dispersion
+scale_high <- mean(sev_high_value$claim_amount) / shape_high
+
+shape_attr <- 1 / summary(sev_model_attr)$dispersion
+scale_attr <- mean(sev_attritional$claim_amount) / shape_attr
+
+
+set.seed(123)
+n_sim <- 50000
+agg_high <- numeric(n_sim)
+agg_attr <- numeric(n_sim)
+
+# Predict averages for each segment
+mu_high <- mean(predict(freq_model_nb, newdata = freq_high_value, type = "response"))
+mu_attr <- mean(predict(freq_model_nb, newdata = freq_attritional, type = "response"))
+
+for(s in 1:n_sim){
+  # 1. Simulate High-Value (Gold/Platinum)
+  f_high <- rnbinom(1, size = freq_model_nb$theta, mu = mu_high * nrow(freq_high_value))
+  if(f_high > 0) agg_high[s] <- sum(rgamma(f_high, shape = shape_high, scale = scale_high))
+  
+  # 2. Simulate Attritional
+  f_attr <- rnbinom(1, size = freq_model_nb$theta, mu = mu_attr * nrow(freq_attritional))
+  if(f_attr > 0) agg_attr[s] <- sum(rgamma(f_attr, shape = shape_attr, scale = scale_attr))
+}
+
+# --- Risk Metrics Comparison ---
+results <- data.frame(
+  Metric = c("Mean Loss", "99% VaR", "TVaR (Tail Risk)"),
+  High_Value_Gold_Plat = c(mean(agg_high), quantile(agg_high, 0.99), mean(agg_high[agg_high > quantile(agg_high, 0.99)])),
+  Attritional_Cargo = c(mean(agg_attr), quantile(agg_attr, 0.99), mean(agg_attr[agg_attr > quantile(agg_attr, 0.99)]))
+)
+print(results)
+
+
+# Fit GPD to Gold/Platinum only
+thresh_gold <- quantile(sev_high_value$claim_amount, 0.95)
+gpd_gold <- gpd(sev_high_value$claim_amount, thresh_gold)
+
+# Fit GPD to Attritional only
+thresh_attr <- quantile(sev_attritional$claim_amount, 0.95)
+gpd_attr <- gpd(sev_attritional$claim_amount, thresh_attr)
+
+# Compare the Shape Parameter (xi)
+# If xi > 0, the tail is heavy. Gold's xi should be significantly higher.
+summary(gpd_gold)$par.ests
+summary(gpd_attr)$par.ests
