@@ -1072,15 +1072,176 @@ results <- data.frame(
 print(results)
 
 
-# Fit GPD to Gold/Platinum only
-thresh_gold <- quantile(sev_high_value$claim_amount, 0.95)
-gpd_gold <- gpd(sev_high_value$claim_amount, thresh_gold)
+# -----------------------------
+# Stress Test 1: Severity Inflation
+# -----------------------------
 
-# Fit GPD to Attritional only
-thresh_attr <- quantile(sev_attritional$claim_amount, 0.95)
-gpd_attr <- gpd(sev_attritional$claim_amount, thresh_attr)
+stress_scale <- sev_scale * 1.2
 
-# Compare the Shape Parameter (xi)
-# If xi > 0, the tail is heavy. Gold's xi should be significantly higher.
-summary(gpd_gold)$par.ests
-summary(gpd_attr)$par.ests
+aggregate_loss_stress1 <- numeric(n_sim)
+
+for(i in 1:n_sim){
+  
+  if(freq_sim[i] > 0){
+    
+    severities <- rgamma(freq_sim[i],
+                         shape = sev_shape,
+                         scale = stress_scale)
+    
+    aggregate_loss_stress1[i] <- sum(severities)
+  }
+}
+
+quantile(aggregate_loss_stress1, 0.99)
+mean(aggregate_loss_stress1[aggregate_loss_stress1 > quantile(aggregate_loss_stress1,0.99)])
+
+# -----------------------------
+# Stress Test 2: Frequency Surge
+# -----------------------------
+
+freq_stress <- round(freq_sim * 1.3)
+
+aggregate_loss_stress2 <- numeric(n_sim)
+
+for(i in 1:n_sim){
+  
+  if(freq_stress[i] > 0){
+    
+    severities <- rgamma(freq_stress[i],
+                         shape = sev_shape,
+                         scale = sev_scale)
+    
+    aggregate_loss_stress2[i] <- sum(severities)
+  }
+}
+
+quantile(aggregate_loss_stress2, 0.99)
+
+# -----------------------------
+# Stress Test 3: Catastrophic Scenario
+# -----------------------------
+
+aggregate_loss_stress3 <- numeric(n_sim)
+
+for(i in 1:n_sim){
+  
+  if(freq_stress[i] > 0){
+    
+    severities <- rgamma(freq_stress[i],
+                         shape = sev_shape,
+                         scale = stress_scale)
+    
+    aggregate_loss_stress3[i] <- sum(severities)
+  }
+}
+
+quantile(aggregate_loss_stress3,0.99)
+quantile(aggregate_loss_stress3,0.999)
+
+data.frame(
+  Scenario = c("Baseline","Severity Stress","Frequency Stress","Catastrophic"),
+  VaR99 = c(
+    quantile(aggregate_loss,0.99),
+    quantile(aggregate_loss_stress1,0.99),
+    quantile(aggregate_loss_stress2,0.99),
+    quantile(aggregate_loss_stress3,0.99)
+  )
+)
+
+hist(aggregate_loss_stress3,
+     breaks=100,
+     main="Catastrophic Stress Loss Distribution")
+
+
+# ---------------------------------------------------------
+# 1. SETUP & SYSTEM-SPECIFIC PARAMETERS
+# ---------------------------------------------------------
+set.seed(2174) # Reference year
+n_sim <- 100000
+
+# Define systems based on Case Study profiles
+systems <- c("Helionis", "Bayesia", "Oryn_Delta")
+
+# Base Frequency (λ) and Severity (Gamma params) per system
+# Oryn Delta has higher severity due to 'asymmetric asteroid ring' risks
+sys_params <- list(
+  Helionis    = list(lambda = 12, shape = 2.0, scale = 50), 
+  Bayesia     = list(lambda = 18, shape = 1.5, scale = 70), # Radiation spikes
+  Oryn_Delta  = list(lambda = 15, shape = 1.2, scale = 120) # High-risk gravity shear
+)
+
+# ---------------------------------------------------------
+# 2. CORRELATED RISK SCENARIO: The "Great Flare" (Stress 4)
+# ---------------------------------------------------------
+# Actuarial requirement: Dependency-based methods for multi-system events
+solar_storm_occurs <- rbinom(n_sim, 1, 0.01) # 1-in-100 year event
+
+# ---------------------------------------------------------
+# 3. MULTI-SYSTEM SIMULATION ENGINE
+# ---------------------------------------------------------
+run_simulation <- function(stress_freq = 1.0, stress_sev = 1.0, correlated_event = FALSE) {
+  total_losses <- numeric(n_sim)
+  
+  for(s in systems) {
+    p <- sys_params[[s]]
+    
+    # Simulate Frequency (Poisson)
+    freq <- rpois(n_sim, p$lambda * stress_freq)
+    
+    # Apply Correlated Event Impact
+    if(correlated_event) {
+      # If a solar storm hits, frequency increases by 5x for that year
+      freq <- freq + (solar_storm_occurs * rpois(n_sim, p$lambda * 5))
+    }
+    
+    # Simulate Severity (Gamma)
+    sys_loss <- sapply(freq, function(f) {
+      if(f > 0) sum(rgamma(f, shape = p$shape, scale = p$scale * stress_sev)) else 0
+    })
+    
+    total_losses <- total_losses + sys_loss
+  }
+  return(total_losses)
+}
+
+# ---------------------------------------------------------
+# 4. EXECUTE SCENARIOS
+# ---------------------------------------------------------
+baseline     <- run_simulation()
+sev_stress   <- run_simulation(stress_sev = 1.4) # Inflation/Tech failure
+freq_stress  <- run_simulation(stress_freq = 1.5) # Regulatory/Safety lapse
+catastrophic <- run_simulation(stress_freq = 1.5, stress_sev = 1.4, correlated_event = TRUE)
+
+# ---------------------------------------------------------
+# 5. METRICS & TAIL BEHAVIOR (VaR and TVaR)
+# ---------------------------------------------------------
+calc_metrics <- function(losses, name) {
+  var_99  <- quantile(losses, 0.99)
+  tvar_99 <- mean(losses[losses > var_99]) # Tail Value at Risk
+  
+  data.frame(
+    Scenario = name,
+    Mean = mean(losses),
+    VaR_99 = var_99,
+    TVaR_99 = tvar_99,
+    Max_Loss = max(losses)
+  )
+}
+
+summary_table <- rbind(
+  calc_metrics(baseline, "Baseline"),
+  calc_metrics(sev_stress, "Severity Stress (+40%)"),
+  calc_metrics(freq_stress, "Frequency Stress (+50%)"),
+  calc_metrics(catastrophic, "Systemic Catastrophe (Correlated)")
+)
+
+print(summary_table)
+
+# ---------------------------------------------------------
+# 6. VISUALIZING THE TAIL (For the Report)
+# ---------------------------------------------------------
+hist(catastrophic, breaks = 100, col = rgb(1,0,0,0.5), 
+     main = "Aggregate Loss Distribution: Catastrophic Scenario",
+     xlab = "Loss (Đ Millions)", xlim = c(0, quantile(catastrophic, 0.999)))
+abline(v = summary_table$VaR_99[4], col = "blue", lwd = 2, lty = 2)
+legend("topright", legend = c("99% VaR"), col = "blue", lty = 2)
