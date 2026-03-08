@@ -387,7 +387,7 @@ worker_data_sev[numeric_vars] <- scale(worker_data_sev[numeric_vars])
 gamma_sev <- glm(
   claim_amount ~ occupation + solar_system + employment_type +
     accident_history_flag + psych_stress_index + supervision_level + 
-    protective_gear_quality + base_salary,
+    protective_gear_quality + base_salary + claim_length,
   family = Gamma(link = "log"),
   data = worker_data_sev
 )
