@@ -371,6 +371,15 @@ zinb_model <- zeroinfl(
 )
 summary(zinb_model)
 
+nb_freq <- glm.nb(
+  claim_count ~ occupation + solar_system + employment_type +
+    accident_history_flag + psych_stress_index + safety_training_index +
+    supervision_level + protective_gear_quality + base_salary,
+  data = worker_data_freq
+)
+
+summary(nb_freq)
+
 #######################################
 # Severity GLM
 #######################################
@@ -394,53 +403,18 @@ gamma_sev <- glm(
 
 summary(gamma_sev)
 
+lognormal_sev <- glm(
+  log(claim_amount) ~ occupation + solar_system + employment_type +
+    accident_history_flag + psych_stress_index + supervision_level +
+    protective_gear_quality + base_salary + claim_length,
+  family = gaussian(link = "identity"),
+  data = worker_data_sev
+)
+
+summary(lognormal_sev)
+
 #######################################
 # Monte Carlo Simulation
-#######################################
-set.seed(123)
-n_sim <- 500000
-
-# Predict mean frequency
-lambda_hat <- predict(zinb_model, type = "response")
-
-# Use average lambda
-lambda_mean <- mean(lambda_hat)
-
-# Simulate frequency
-freq_sim <- rnbinom(n_sim,
-                    size = zinb_model$theta,
-                    mu = lambda_mean)
-
-# Severity parameters
-sev_shape <- 1 / summary(gamma_sev)$dispersion
-sev_scale <- mean(worker_data_sev$claim_amount) / sev_shape
-
-aggregate_loss <- numeric(n_sim)
-
-for(i in 1:n_sim){
-  if(freq_sim[i] > 0){
-    aggregate_loss[i] <-
-      sum(rgamma(freq_sim[i],
-                 shape = sev_shape,
-                 scale = sev_scale))
-  }
-}
-
-
-WC_VaR_99 <- quantile(aggregate_loss, 0.99)
-WC_VaR_99
-
-WC_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
-WC_TVaR_99
-
-WC_mean_loss <- mean(aggregate_loss)
-WC_mean_loss
-
-WC_sd_loss   <- sd(aggregate_loss)
-WC_sd_loss
-
-#######################################
-# Monte Carlo Simulation Pt. 2
 #######################################
 
 set.seed(123)
@@ -448,13 +422,13 @@ set.seed(123)
 n_sim <- 10000   # 10k is usually enough for stable 99% VaR
 
 # --- 1. Frequency model inputs ---
-lambda_hat <- predict(zinb_model, type = "response")
-theta_hat  <- zinb_model$theta
+lambda_hat <- predict(nb_freq, type = "response")
+theta_hat  <- nb_freq$theta
 
 n_pol <- length(lambda_hat)
 
 # --- 2. Severity model inputs ---
-sev_shape <- 1 / summary(gamma_sev)$dispersion
+sev_shape <- 1 / summary(lognormal_sev)$dispersion
 sev_mean  <- mean(worker_data_sev$claim_amount)
 sev_scale <- sev_mean / sev_shape
 
@@ -524,14 +498,14 @@ cop_sim <- rCopula(n_sim, fit_cop@copula)
 u_sim <- cop_sim[,1]
 v_sim <- cop_sim[,2]
 
-lambda_hat <- predict(zinb_model, type = "response")
+lambda_hat <- predict(nb_freq, type = "response")
 lambda_mean <- mean(lambda_hat)
 
 freq_sim <- qnbinom(u_sim,
-                    size = zinb_model$theta,
+                    size = nb_freq$theta,
                     mu = sample(lambda_hat, n_sim, replace = TRUE))
 
-sev_shape <- 1 / summary(gamma_sev)$dispersion
+sev_shape <- 1 / summary(lognormal_sev)$dispersion
 sev_scale <- mean(worker_data_sev$claim_amount) / sev_shape
 
 sev_sim <- qgamma(v_sim,
@@ -906,7 +880,7 @@ gravity_results <- data.frame()
 for(g in gravity_stress_levels){
   
   freq_stress <- rnbinom(n_sim,
-                         size = zinb_model$theta,
+                         size = nb_freq$theta,
                          mu = lambda_mean * g)
   
   sev_scale_stress <- sev_scale * g
@@ -948,7 +922,7 @@ for(s in psych_stress_levels){
   
   # Increase frequency for stressed workers
   freq_stress <- rnbinom(n_sim,
-                         size = zinb_model$theta,
+                         size = nb_freq$theta,
                          mu = lambda_mean * s)
   
   # Increase severity slightly
@@ -992,7 +966,7 @@ for(rho in correlation_levels){
   sev_driver  <- qnorm(u[,2])
   
   freq_stress <- rnbinom(n_sim,
-                         size = zinb_model$theta,
+                         size = nb_freq$theta,
                          mu = lambda_mean * exp(0.2 * freq_driver))
   
   sev_scale_stress <- sev_scale * exp(0.2 * sev_driver)
