@@ -1,0 +1,14 @@
+metric,value
+mean_loss," 14,922,374.87 "
+sd_loss," 1,240,718.07 "
+var_95," 17,010,761.46 "
+var_99," 17,943,892.88 "
+tvar_99," 18,432,316.88 "
+historical_total_loss," 14,922,374.87 "
+mean_minus_historical, -   
+model_expected_loss," 14,912,088.92 "
+simulation_minus_model_expected," 10,285.95 "
+tail_gap_99," 3,509,942.00 "
+current_risk_margin_amount," 745,604.45 "
+suggested_risk_ratio, 0.24 
+,

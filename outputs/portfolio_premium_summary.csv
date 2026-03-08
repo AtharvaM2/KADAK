@@ -1,0 +1,2 @@
+total_employees,selected_frequency_model,selected_severity_model,total_portfolio_pure_premium,total_portfolio_technical_premium,weighted_average_premium_per_employee,historical_total_loss,expected_loss_simulated,var99_simulated,tvar99_simulated,tail_gap_99,loss_validation_difference,risk_loading_adequate,suggested_risk_ratio
+35809,NB,LOGNORMAL," 14,912,088.92 "," 19,330,485.64 ", 539.82 ," 14,922,374.87 "," 14,922,374.87 "," 17,943,892.88 "," 18,432,316.88 "," 3,509,942.00 "," 10,285.95 ", FALSE , 0.24 

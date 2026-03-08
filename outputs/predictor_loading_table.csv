@@ -1,0 +1,25 @@
+"predictor","predictor_key","predictor_type","level","is_baseline","representative_value","frequency_loading","severity_loading","premium_loading","contribution_label","adjusted_pure_premium","adjusted_technical_premium"
+"Accident history flag","accident_history_flag","numeric","representative_value",FALSE,0.102199,1.017382,0.99997,1.017352,"Accident history flag at 0.1022",176.454091,228.736784
+"Base salary","base_salary","numeric","representative_value",FALSE,48659.535111,1,1.000024,1.000024,"Base salary at 48659.5351",173.448645,224.840836
+"Claim length","claim_length","numeric","representative_value",FALSE,57.605901,1,1.35217,1.35217,"Claim length at 57.6059",234.526425,304.015736
+"Employment type","employment_type","categorical","Contract",TRUE,NA,1,1,1,"Employment type: Contract",173.444482,224.83544
+"Employment type","employment_type","categorical","Full-time",FALSE,NA,1.033469,1.078652,1.114754,"Employment type: Full-time",193.34793,250.636206
+"Exposure","exposure","numeric","representative_value",FALSE,0.504997,0.504997,1,0.504997,"Exposure at 0.505",87.588943,113.541222
+"Occupation","occupation","categorical","Administrator",TRUE,NA,1,1,1,"Occupation: Administrator",173.444482,224.83544
+"Occupation","occupation","categorical","Drill Operator",FALSE,NA,3.139318,1.088397,3.416825,"Occupation: Drill Operator",592.629442,768.223351
+"Occupation","occupation","categorical","Engineer",FALSE,NA,1.926059,1.509312,2.907023,"Occupation: Engineer",504.207098,653.601794
+"Occupation","occupation","categorical","Executive",FALSE,NA,0.947251,1.479897,1.401835,"Occupation: Executive",243.140545,315.182188
+"Occupation","occupation","categorical","Maintenance Staff",FALSE,NA,2.054284,0.94613,1.943619,"Occupation: Maintenance Staff",337.109991,436.994432
+"Occupation","occupation","categorical","Manager",FALSE,NA,1.199086,1.396499,1.674523,"Occupation: Manager",290.436774,376.492115
+"Occupation","occupation","categorical","Planetary Operations",FALSE,NA,1.494782,1.039076,1.553191,"Occupation: Planetary Operations",269.392408,349.212381
+"Occupation","occupation","categorical","Safety Officer",FALSE,NA,1.575663,1.079776,1.701363,"Occupation: Safety Officer",295.092024,382.526698
+"Occupation","occupation","categorical","Scientist",FALSE,NA,1.561846,1.644436,2.568356,"Occupation: Scientist",445.467176,577.45745
+"Occupation","occupation","categorical","Spacecraft Operator",FALSE,NA,1.417654,1.075161,1.524206,"Occupation: Spacecraft Operator",264.36512,342.695526
+"Occupation","occupation","categorical","Technology Officer",FALSE,NA,1.998784,1.251413,2.501303,"Occupation: Technology Officer",433.837203,562.38156
+"Protective gear quality","protective_gear_quality","numeric","representative_value",FALSE,3.76765,1,0.609701,0.609701,"Protective gear quality at 3.7677",105.749274,137.082392
+"Psychological stress index","psych_stress_index","numeric","representative_value",FALSE,2.021381,1.087946,1.582585,1.721768,"Psychological stress index at 2.0214",298.631159,387.114465
+"Safety training index","safety_training_index","numeric","representative_value",FALSE,4.027187,0.716717,1,0.716717,"Safety training index at 4.0272",124.310609,161.143382
+"Solar system","solar_system","categorical","Epsilon",TRUE,NA,1,1,1,"Solar system: Epsilon",173.444482,224.83544
+"Solar system","solar_system","categorical","Helionis Cluster",FALSE,NA,1.123296,1.158578,1.301426,"Solar system: Helionis Cluster",225.725158,292.606687
+"Solar system","solar_system","categorical","Zeta",FALSE,NA,1.165235,1.162794,1.354928,"Solar system: Zeta",235.004785,304.635833
+"Supervision level","supervision_level","numeric","representative_value",FALSE,0.284141,1,0.984554,0.984554,"Supervision level at 0.2841",170.765459,221.362631

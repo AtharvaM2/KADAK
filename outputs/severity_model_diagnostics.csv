@@ -1,0 +1,13 @@
+"metric","value","value_text"
+"historical_severity_mean",7862.1574679372,NA
+"historical_severity_max",193357.18,NA
+"gamma_aic",34924.1835601271,NA
+"lognormal_aic",4860.20180191766,NA
+"tail_threshold",50000,NA
+"tail_probability",0.047945205479452,NA
+"bulk_gamma_shape",0.3756217881139,NA
+"bulk_gamma_scale",10984.2353961463,NA
+"gpd_scale",36999.5723067112,NA
+"gpd_shape",-0.155727074247504,NA
+"splice_base_mean",7860.28344651252,NA
+"selected_severity_model",NA,"LOGNORMAL"
