@@ -899,12 +899,12 @@ econ_forecast_hw <- function(df, col_name, horizon = 10) {
 econ_projection <- bind_rows(
   econ_forecast_hw(econ_raw, "Inflation", 10),
   econ_forecast_hw(econ_raw, "1-Year Risk Free Annual Spot Rate", 10)
-) %>%
-  pivot_wider(names_from = series, values_from = value) %>%
+) |>
+  pivot_wider(names_from = series, values_from = value) |>
   rename(
     inflation = Inflation,
     rf_1y = `1-Year Risk Free Annual Spot Rate`
-  ) %>%
+  ) |>
   mutate(
     inflation = pmax(inflation, -0.02),
     rf_1y = pmax(rf_1y, 0),
