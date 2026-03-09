@@ -1,0 +1,7 @@
+"metric","value"
+"poisson_aic",191601.362778579
+"nb_aic",169435.257808512
+"poisson_bic",191756.320941612
+"nb_bic",169599.900856735
+"observed_zero_rate",0.817766565532963
+"predicted_zero_rate_nb",0.828781899741765

@@ -1,14 +1,13 @@
-metric,value
-mean_loss," 14,922,374.87 "
-sd_loss," 1,240,718.07 "
-var_95," 17,010,761.46 "
-var_99," 17,943,892.88 "
-tvar_99," 18,432,316.88 "
-historical_total_loss," 14,922,374.87 "
-mean_minus_historical, -   
-model_expected_loss," 14,912,088.92 "
-simulation_minus_model_expected," 10,285.95 "
-tail_gap_99," 3,509,942.00 "
-current_risk_margin_amount," 745,604.45 "
-suggested_risk_ratio, 0.24 
-,
+"metric","value"
+"mean_loss",14922374.8741448
+"sd_loss",1240718.07389832
+"var_95",17010761.4622387
+"var_99",17943892.8820754
+"tvar_99",18432316.8761633
+"historical_total_loss",14922374.8741448
+"mean_minus_historical",1.86264514923096e-09
+"model_expected_loss",14912088.9213349
+"simulation_minus_model_expected",10285.9528099038
+"tail_gap_99",3509942.00201846
+"current_risk_margin_amount",745604.446066745
+"suggested_risk_ratio",0.235375608376151

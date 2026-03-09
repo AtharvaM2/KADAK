@@ -17,16 +17,8 @@ library(VineCopula)
 # Load Data
 # -----------------------------
 
-cargo_freq <- read_excel("KADAK/srcsc-2026-claims-cargo.xlsx", sheet = 1)
-cargo_sev  <- read_excel("KADAK/srcsc-2026-claims-cargo.xlsx", sheet = 2)
-
-cargo_full <- cargo_freq |>
-  left_join(cargo_sev,
-            by = c("policy_id", "shipment_id"))
-
-cargo_full <- cargo_freq |>
-  inner_join(cargo_sev,
-            by = c("policy_id", "shipment_id"))
+cargo_freq <- read_excel("srcsc-2026-claims-cargo.xlsx", sheet = 1)
+cargo_sev  <- read_excel("srcsc-2026-claims-cargo.xlsx", sheet = 2)
 
 #clean data to be consistent with given value range
 cargo_freq <- cargo_freq |>
@@ -798,7 +790,7 @@ for(i in 1:n_sim){
 CL_VaR_99 <- quantile(aggregate_loss, 0.99)
 CL_VaR_99
 
-CL_TVaR_99 <- mean(aggregate_loss[aggregate_loss > VaR_99])
+CL_TVaR_99 <- mean(aggregate_loss[aggregate_loss > CL_VaR_99])
 CL_TVaR_99
 
 CL_mean_loss <- mean(aggregate_loss)
@@ -1001,9 +993,9 @@ plot(sim_t, main = "t-Copula", xlab = "U", ylab = "V", pch=20, col=rgb(0.5,0,0.5
 
 
 #extreme scenario risk 
+quantile(aggregate_loss, 0.99) ##99% VaR
 quantile(aggregate_loss, 0.995) ##solvency risk 
 quantile(aggregate_loss, 0.999) ##catastrophic risk 
-
 
 #############################################################################
 # Separate Model for Gold and Platinum

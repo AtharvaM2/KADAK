@@ -1,0 +1,8 @@
+"metric","value"
+"frequency_mean_exact",35221.5030902477
+"frequency_mean_effective_nb",35221.5030902477
+"frequency_var_exact",152305.333384097
+"frequency_var_effective_nb",152305.333384097
+"loss_mean_exact_style_small_sim",15376435395.5437
+"loss_mean_effective_nb_main_sim",15382229485.9018
+"loss_mean_relative_gap",0.000376816226198467
