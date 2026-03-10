@@ -22,9 +22,6 @@ library(copula)
 setwd("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001")
 
 
-# -----------------------------
-# 2. Data Import
-# -----------------------------
 
 bi_freq_raw <- read_excel(
   "KADAK/srcsc-2026-claims-business-interruption.xlsx",
@@ -36,9 +33,8 @@ bi_sev_raw <- read_excel(
   sheet = 2
 )
 
-
 # -----------------------------
-# 3. Data Cleaning
+# 2. Data Cleaning
 # -----------------------------
 
 bi_freq_raw <- bi_freq_raw %>%
@@ -86,7 +82,7 @@ bi_sev_clean <- bi_sev_raw %>%
 
 
 # -----------------------------
-# 4. Dataset Construction
+# 3. Dataset Construction
 # -----------------------------
 
 bi_sev_agg <- bi_sev_clean %>%
@@ -105,7 +101,7 @@ bi_full <- bi_freq_clean %>%
 
 
 # -----------------------------
-# 5. Exploratory Data Analysis
+# 4. Exploratory Data Analysis
 # -----------------------------
 
 blue_pal <- c("#c6dbef","#9ecae1","#6baed6","#3182bd","#08519c")
@@ -187,7 +183,7 @@ ggplot(heatmap_summary2, aes(x=as.factor(maintenance_freq), y=solar_system, fill
   theme_minimal()
 
 # -----------------------------
-# 6. Frequency Modelling
+# 5. Frequency Modelling
 # -----------------------------
 
 bi_freq_model <- bi_freq_clean %>%
@@ -220,7 +216,7 @@ AIC(poisson_model, nb_model, zinb_model)
 
 
 # -----------------------------
-# 7. Severity Modelling
+# 6. Severity Modelling
 # -----------------------------
 
 bi_sev_model <- bi_sev_clean
@@ -242,203 +238,265 @@ gamma_sev_step <- stepAIC(gamma_sev, direction="both")
 
 set.seed(123)
 
-n_sim <- 50000
+n_sim <- 10000  # number of Monte Carlo iterations
 
-lambda_hat <- predict(zinb_model, type = "response")
-theta_hat <- zinb_model$theta
+# Use the NB model predictions
+lambda_hat <- predict(nb_model, type = "response")
+theta_hat <- nb_model$theta
 n_pol <- length(lambda_hat)
 
-sev_shape <- 1 / summary(gamma_sev)$dispersion
-sev_mean <- mean(bi_sev_clean$claim_amount)
-sev_scale <- sev_mean / sev_shape
+# Severity parameters (Gamma)
+# Use the mean and dispersion from your gamma model
+sev_shape <- 1 / summary(gamma_sev)$dispersion  # shape
+sev_scale <- mean(bi_sev_clean$claim_amount) / sev_shape  # scale
 
+# Storage for aggregate losses
 aggregate_loss <- numeric(n_sim)
 
 for(s in 1:n_sim){
   
-  freq_sim <- rnbinom(n_pol,
-                      size = theta_hat,
-                      mu = lambda_hat)
+  # Simulate frequency for each policy
+  freq_sim <- rnbinom(n_pol, size = theta_hat, mu = lambda_hat)
   
   total_claims <- sum(freq_sim)
   
+  # Simulate severities only if there are claims
   if(total_claims > 0){
-    
     severities <- rgamma(total_claims,
                          shape = sev_shape,
                          scale = sev_scale)
-    
     aggregate_loss[s] <- sum(severities)
+  } else {
+    aggregate_loss[s] <- 0
   }
 }
 
-BI_mean_loss <- mean(aggregate_loss)
-BI_sd_loss <- sd(aggregate_loss)
-BI_VaR_99 <- quantile(aggregate_loss,0.99)
-BI_TVaR_99 <- mean(aggregate_loss[aggregate_loss > BI_VaR_99])
+# -----------------------------
+# 7. Risk Measures
+# -----------------------------
+BI_mean_loss_mc <- mean(aggregate_loss)
+BI_sd_loss_mc   <- sd(aggregate_loss)
+BI_VaR_99_mc   <- quantile(aggregate_loss,0.99)
+BI_TVaR_99_mc  <- mean(aggregate_loss[aggregate_loss > BI_VaR_99_mc])
+BI_VaR_995_mc  <- quantile(aggregate_loss,0.995)
+BI_VaR_999_mc  <- quantile(aggregate_loss,0.999)
+
+risk_summary_mc <- data.frame(
+  Metric = c("Mean Loss", "Std Dev", "VaR 99", "TVaR 99", "VaR 99.5", "VaR 99.9"),
+  Value = c(BI_mean_loss_mc, BI_sd_loss_mc, BI_VaR_99_mc, BI_TVaR_99_mc,
+            BI_VaR_995_mc, BI_VaR_999_mc)
+)
+
+print(risk_summary_mc)
+
+# -----------------------------
+# 8. Stress Tests
+# -----------------------------
+
+set.seed(123)
+
+n_sim <- 1000  # number of Monte Carlo iterations
+n_pol <- length(lambda_hat)  # number of policies
+
+stress_factor_freq <- 1.3    # frequency surge
+stress_factor_sev  <- 1.2    # severity inflation
+
+# Prepare storage for aggregate losses
+aggregate_loss_baseline <- numeric(n_sim)
+aggregate_loss_stress1  <- numeric(n_sim)  # Severity stress
+aggregate_loss_stress2  <- numeric(n_sim)  # Frequency stress
+aggregate_loss_stress3  <- numeric(n_sim)  # Catastrophic (both)
+
+for(s in 1:n_sim){
+  
+  # -----------------------------
+  # 1. Simulate baseline frequency
+  # -----------------------------
+  freq_sim <- rnbinom(n_pol, size = theta_hat, mu = lambda_hat)
+  total_claims <- sum(freq_sim)
+  
+  # Baseline aggregate loss
+  if(total_claims > 0){
+    severities <- rgamma(total_claims, shape = sev_shape, scale = sev_scale)
+    aggregate_loss_baseline[s] <- sum(severities)
+  }
+  
+  # -----------------------------
+  # 2. Severity stress (increase severity)
+  # -----------------------------
+  if(total_claims > 0){
+    severities_stress <- rgamma(total_claims, shape = sev_shape, scale = sev_scale * stress_factor_sev)
+    aggregate_loss_stress1[s] <- sum(severities_stress)
+  }
+  
+  # -----------------------------
+  # 3. Frequency stress (increase frequency)
+  # -----------------------------
+  freq_stress <- round(freq_sim * stress_factor_freq)
+  total_claims_stress <- sum(freq_stress)
+  
+  if(total_claims_stress > 0){
+    severities_freq_stress <- rgamma(total_claims_stress, shape = sev_shape, scale = sev_scale)
+    aggregate_loss_stress2[s] <- sum(severities_freq_stress)
+  }
+  
+  # -----------------------------
+  # 4. Catastrophic (both frequency & severity stressed)
+  # -----------------------------
+  if(total_claims_stress > 0){
+    severities_cat <- rgamma(total_claims_stress, shape = sev_shape, scale = sev_scale * stress_factor_sev)
+    aggregate_loss_stress3[s] <- sum(severities_cat)
+  }
+}
+
+# -----------------------------
+# 9. Risk Metrics Results
+# -----------------------------
+
+stress_results <- data.frame(
+  Scenario = c("Baseline","Severity Stress","Frequency Stress","Catastrophic"),
+  VaR99   = c(
+    quantile(aggregate_loss_baseline,0.99),
+    quantile(aggregate_loss_stress1,0.99),
+    quantile(aggregate_loss_stress2,0.99),
+    quantile(aggregate_loss_stress3,0.99)
+  ),
+  TVaR99  = c(
+    mean(aggregate_loss_baseline[aggregate_loss_baseline > quantile(aggregate_loss_baseline,0.99)]),
+    mean(aggregate_loss_stress1[aggregate_loss_stress1 > quantile(aggregate_loss_stress1,0.99)]),
+    mean(aggregate_loss_stress2[aggregate_loss_stress2 > quantile(aggregate_loss_stress2,0.99)]),
+    mean(aggregate_loss_stress3[aggregate_loss_stress3 > quantile(aggregate_loss_stress3,0.99)])
+  )
+)
+
+stress_results
+
+# Catastrophic Loss Histogram
+# -----------------------------
+
+hist(aggregate_loss_stress3,
+     breaks = 100,
+     main = "Catastrophic Stress Loss Distribution",
+     xlab = "Aggregate Loss",
+     col = "salmon",
+     border = "white")
+
 
 
 # -----------------------------
-# 9. Copula Dependence Modelling
+# 10. Tail Dependence
 # -----------------------------
 
+# Only keep positive-frequency policies
 freq <- bi_freq_clean$claim_count
-freq_pos <- freq[freq > 0]
-
+freq_pos <- freq[freq>0]
 sev <- bi_sev_clean$claim_amount
 
 n <- min(length(freq_pos), length(sev))
 
+# Convert to pseudo-observations
 freq_dep <- freq_pos[1:n]
-sev_dep <- sev[1:n]
+sev_dep  <- sev[1:n]
+dep_data <- data.frame(freq_dep, sev_dep)
+u <- rank(dep_data$freq_dep) / (n + 1)
+v <- rank(dep_data$sev_dep)  / (n + 1)
 
-u <- rank(freq_dep)/(n+1)
-v <- rank(sev_dep)/(n+1)
+uv_data <- cbind(u, v)
 
-uv_data <- cbind(u,v)
+t_cop <- tCopula(dim = 2)
 
-norm_cop <- normalCopula(param=0.5,dim=2)
-clay_cop <- claytonCopula(param=2,dim=2)
-gumb_cop <- gumbelCopula(param=2,dim=2)
-t_cop <- tCopula(param=0.5,df=4,dim=2)
+fit_cop <- fitCopula(t_cop, uv_data, method = "ml")
 
-fit_norm <- fitCopula(norm_cop,uv_data,method="ml")
-fit_clay <- fitCopula(clay_cop,uv_data,method="ml")
-fit_gumb <- fitCopula(gumb_cop,uv_data,method="ml")
-fit_t <- fitCopula(t_cop,uv_data,method="ml")
-
-AIC(fit_norm,fit_clay,fit_gumb,fit_t)
-
-
-# -----------------------------
-# 10. Copula Simulation
-# -----------------------------
+summary(fit_cop)
 
 set.seed(123)
 
 n_sim <- 500000
 
-cop_sim <- rCopula(n_sim, fit_norm@copula)
+cop_sim <- rCopula(n_sim, fit_cop@copula)
 
 u_sim <- cop_sim[,1]
 v_sim <- cop_sim[,2]
 
-freq_sim <- qnbinom(
-  u_sim,
-  size = zinb_model$theta,
-  mu = sample(lambda_hat,n_sim,replace=TRUE)
-)
+lambda_hat <- predict(zinb_model, type = "response")
+lambda_mean <- mean(lambda_hat)
 
-sev_sim <- qgamma(
-  v_sim,
-  shape = sev_shape,
-  scale = sev_scale
-)
+freq_sim <- qnbinom(u_sim,
+                    size = zinb_model$theta,
+                    mu = sample(lambda_hat, n_sim, replace = TRUE))
 
-aggregate_loss <- numeric(n_sim)
+sev_shape <- 1 / summary(gamma_sev)$dispersion
+sev_scale <- mean(bi_sev_clean$claim_amount) / sev_shape
+
+sev_sim <- qgamma(v_sim,
+                  shape = sev_shape,
+                  scale = sev_scale)
+
+aggregate_loss <- freq_sim * sev_sim
 
 for(i in 1:n_sim){
-  
   if(freq_sim[i] > 0){
-    
-    severities <- rgamma(freq_sim[i],
-                         shape = sev_shape,
-                         scale = sev_scale)
-    
-    aggregate_loss[i] <- sum(severities)
+    aggregate_loss[i] <- sum(rgamma(freq_sim[i],
+                                    shape = sev_shape,
+                                    scale = sev_scale))
   }
 }
 
+WC_mean_loss <- mean(aggregate_loss)
+WC_sd_loss   <- sd(aggregate_loss)
+
+WC_VaR_99  <- quantile(aggregate_loss, 0.99)
+WC_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
+lambda(fit_cop@copula)
+
 
 # -----------------------------
-# 11. Extreme Risk Measures
+# 10. Fit Copulas
 # -----------------------------
 
-BI_mean_loss <- mean(aggregate_loss)
-BI_sd_loss <- sd(aggregate_loss)
+norm_cop <- normalCopula(param = 0.5, dim = 2) # Gaussian
+clay_cop <- claytonCopula(param = 2, dim = 2) # Lower tail
+gumb_cop <- gumbelCopula(param = 2, dim = 2) # Upper tail
+t_cop    <- tCopula(param = 0.5, df = 4, dim = 2) #t-copula, symmetric
 
-BI_VaR_99 <- quantile(aggregate_loss,0.99)
-BI_TVaR_99 <- mean(aggregate_loss[aggregate_loss > BI_VaR_99])
+fit_norm <- fitCopula(norm_cop, uv_data, method = "ml")
+fit_clay <- fitCopula(clay_cop, uv_data, method = "ml")
+fit_gumb <- fitCopula(gumb_cop, uv_data, method = "ml")
+fit_t    <- fitCopula(t_cop, uv_data, method = "ml")
 
-quantile(aggregate_loss,0.995)
-quantile(aggregate_loss,0.999)
+n_sim <- 5000  # smaller for plotting
 
-# -----------------------------
-# Stress Test 1: Severity Inflation
-# -----------------------------
+sim_norm <- rCopula(n_sim, fit_norm@copula)
+sim_clay <- rCopula(n_sim, fit_clay@copula)
+sim_gumb <- rCopula(n_sim, fit_gumb@copula)
+sim_t    <- rCopula(n_sim, fit_t@copula)
 
-stress_scale <- sev_scale * 1.2
+#plots of copula 
+par(mfrow = c(2,2)) 
 
-aggregate_loss_stress1 <- numeric(n_sim)
+plot(sim_norm, main = "Gaussian Copula", xlab = "Frequency", ylab = "Severity")
+plot(sim_clay, main = "Clayton Copula", xlab = "Frequency", ylab = "Severity")
+plot(sim_gumb, main = "Gumbel Copula", xlab = "Frequency", ylab = "Severity")
+plot(sim_t, main = "t-Copula", xlab = "Frequency", ylab = "Severity")
 
-for(i in 1:n_sim){
-  
-  if(freq_sim[i] > 0){
-    
-    severities <- rgamma(freq_sim[i],
-                         shape = sev_shape,
-                         scale = stress_scale)
-    
-    aggregate_loss_stress1[i] <- sum(severities)
-  }
-}
 
-quantile(aggregate_loss_stress1, 0.99)
-mean(aggregate_loss_stress1[aggregate_loss_stress1 > quantile(aggregate_loss_stress1,0.99)])
+#extreme scenario risk 
+quantile(aggregate_loss, 0.995) ##solvency risk 
+quantile(aggregate_loss, 0.999) ##catastrophic risk 
 
-# -----------------------------
-# Stress Test 2: Frequency Surge
-# -----------------------------
+#scatter plot
+copula_df <- data.frame(u = u_sim, v = v_sim)
 
-freq_stress <- round(freq_sim * 1.3)
+ggplot(copula_df, aes(u, v)) +
+  geom_point(alpha = 0.3) +
+  coord_cartesian(xlim = c(0.9,1), ylim = c(0.9,1)) +
+  labs(
+    title = "Upper Tail Dependence",
+    x = "Frequency (u)",
+    y = "Severity (v)"
+  ) +
+  theme_minimal()
 
-aggregate_loss_stress2 <- numeric(n_sim)
+# tail dependence coefficient
+mean(u_sim > 0.95 & v_sim > 0.95)
 
-for(i in 1:n_sim){
-  
-  if(freq_stress[i] > 0){
-    
-    severities <- rgamma(freq_stress[i],
-                         shape = sev_shape,
-                         scale = sev_scale)
-    
-    aggregate_loss_stress2[i] <- sum(severities)
-  }
-}
-
-quantile(aggregate_loss_stress2, 0.99)
-
-# -----------------------------
-# Stress Test 3: Catastrophic Scenario
-# -----------------------------
-
-aggregate_loss_stress3 <- numeric(n_sim)
-
-for(i in 1:n_sim){
-  
-  if(freq_stress[i] > 0){
-    
-    severities <- rgamma(freq_stress[i],
-                         shape = sev_shape,
-                         scale = stress_scale)
-    
-    aggregate_loss_stress3[i] <- sum(severities)
-  }
-}
-
-quantile(aggregate_loss_stress3,0.99)
-quantile(aggregate_loss_stress3,0.999)
-
-data.frame(
-  Scenario = c("Baseline","Severity Stress","Frequency Stress","Catastrophic"),
-  VaR99 = c(
-    quantile(aggregate_loss,0.99),
-    quantile(aggregate_loss_stress1,0.99),
-    quantile(aggregate_loss_stress2,0.99),
-    quantile(aggregate_loss_stress3,0.99)
-  )
-)
-
-hist(aggregate_loss_stress3,
-     breaks=100,
-     main="Catastrophic Stress Loss Distribution")
