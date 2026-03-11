@@ -1,0 +1,7 @@
+Summary:
+- PV premiums: 179436593.1
+- PV losses: 138422514.66
+- PV expenses: 127177274.05
+- PV profit: -86163195.6
+- Recommended reserve: 18432316.88 (TVaR(99%))
+- Solvent with reserve: NO

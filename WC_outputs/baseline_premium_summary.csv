@@ -1,0 +1,16 @@
+"metric","value"
+"historical_total_loss",14922374.8741448
+"historical_severity_mean",7862.1574679372
+"baseline_count_mean",0.017131431608215
+"baseline_nonzero_probability",1
+"baseline_frequency_per_exposure",0.017131431608215
+"baseline_severity_raw",1548.92112373508
+"severity_anchor_factor",6.53638354819091
+"severity_intercept_shift",1.87738403823971
+"baseline_severity_anchored",10124.3425506274
+"baseline_pure_premium",173.444481984214
+"risk_margin",8.67222409921072
+"expense_ratio",0.3
+"profit_ratio",0.07
+"risk_ratio",0.05
+"baseline_technical_premium",289.074136640357

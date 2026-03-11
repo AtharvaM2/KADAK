@@ -1,5 +1,0 @@
-"hazard_area","recommended_product_status","pricing_distribution_file","stress_testing_file","product_design_file","seamless_report_link"
-"Cargo Loss","Cargo base cover excluding precious metals","cargo_no_gold_platinum_baseline_pricing_summary.csv","cargo_no_gold_platinum_stress_test_results.csv","cargo_no_gold_platinum_product_design_features.csv","Map route/debris/radiation drivers to system-specific terms"
-"Workers' Compensation","Use existing workers model outputs","portfolio_risk_metrics.csv","(existing worker stress results)","(workers product design section in report)","Map safety/training/psych drivers to same solar-system context"
-"Equipment Failure","Model still to be built","pending","pending","pending","Use same short/long cost-return-net structure"
-"Business Interruption","Model still to be built","pending","pending","pending","Use same short/long cost-return-net structure"

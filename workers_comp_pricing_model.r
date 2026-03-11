@@ -12,7 +12,7 @@ set.seed(123)
 # =============================
 # Configuration
 # =============================
-expense_ratio <- 0.12
+expense_ratio <- 0.3
 profit_ratio  <- 0.07
 risk_ratio    <- 0.05
 n_sims        <- 200000
@@ -931,9 +931,9 @@ premium_projection_10yr <- econ_projection %>%
 # =============================
 # 11) Validation plots
 # =============================
-dir.create("outputs", showWarnings = FALSE)
+dir.create("WC_outputs", showWarnings = FALSE)
 
-png("outputs/portfolio_loss_distribution.png", width = 1200, height = 800)
+png("WC_outputs/portfolio_loss_distribution.png", width = 1200, height = 800)
 hist(
   total_loss,
   breaks = 100,
@@ -959,7 +959,7 @@ sim_sev_anchored <- sim_sev_baseline * severity_anchor_factor
 obs_q <- quantile(worker_sev$claim_amount, probs = qq_p, na.rm = TRUE)
 sim_q <- quantile(sim_sev_anchored, probs = qq_p, na.rm = TRUE)
 
-png("outputs/severity_qq_plot.png", width = 1200, height = 800)
+png("WC_outputs/severity_qq_plot.png", width = 1200, height = 800)
 plot(
   obs_q, sim_q,
   pch = 16, cex = 0.6,
@@ -973,17 +973,17 @@ dev.off()
 # =============================
 # 12) Write outputs
 # =============================
-write.csv(baseline_premium_summary, "outputs/baseline_premium_summary.csv", row.names = FALSE)
-write.csv(predictor_loading_table, "outputs/predictor_loading_table.csv", row.names = FALSE)
-write.csv(portfolio_premium_by_occupation, "outputs/portfolio_premium_by_occupation.csv", row.names = FALSE)
-write.csv(portfolio_premium_summary, "outputs/portfolio_premium_summary.csv", row.names = FALSE)
-write.csv(premium_projection_10yr, "outputs/premium_projection_10yr.csv", row.names = FALSE)
-write.csv(portfolio_risk_metrics, "outputs/portfolio_risk_metrics.csv", row.names = FALSE)
+write.csv(baseline_premium_summary, "WC_outputs/baseline_premium_summary.csv", row.names = FALSE)
+write.csv(predictor_loading_table, "WC_outputs/predictor_loading_table.csv", row.names = FALSE)
+write.csv(portfolio_premium_by_occupation, "WC_outputs/portfolio_premium_by_occupation.csv", row.names = FALSE)
+write.csv(portfolio_premium_summary, "WC_outputs/portfolio_premium_summary.csv", row.names = FALSE)
+write.csv(premium_projection_10yr, "WC_outputs/premium_projection_10yr.csv", row.names = FALSE)
+write.csv(portfolio_risk_metrics, "WC_outputs/portfolio_risk_metrics.csv", row.names = FALSE)
 
 # Supplemental diagnostics
-write.csv(frequency_model_diagnostics, "outputs/frequency_model_diagnostics.csv", row.names = FALSE)
-write.csv(severity_model_diagnostics, "outputs/severity_model_diagnostics.csv", row.names = FALSE)
-write.csv(loss_validation, "outputs/loss_validation.csv", row.names = FALSE)
+write.csv(frequency_model_diagnostics, "WC_outputs/frequency_model_diagnostics.csv", row.names = FALSE)
+write.csv(severity_model_diagnostics, "WC_outputs/severity_model_diagnostics.csv", row.names = FALSE)
+write.csv(loss_validation, "WC_outputs/loss_validation.csv", row.names = FALSE)
 
 # Human-readable model choice notes
 cat("\nSelected frequency model:", selected_frequency, "\n")
@@ -993,7 +993,7 @@ cat("Severity anchor factor:", round(severity_anchor_factor, 4), "\n")
 cat("Historical total loss:", round(historical_total_loss, 2), "\n")
 cat("Simulated mean loss (anchored):", round(mean(total_loss), 2), "\n")
 
-cat("\nPricing workflow complete. Files written to outputs/:\n")
+cat("\nPricing workflow complete. Files written to WC_outputs/:\n")
 cat("- baseline_premium_summary.csv\n")
 cat("- predictor_loading_table.csv\n")
 cat("- portfolio_premium_by_occupation.csv\n")

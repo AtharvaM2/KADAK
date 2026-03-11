@@ -1,0 +1,13 @@
+"metric","value"
+"mean_loss",14922374.8741448
+"sd_loss",1240718.07389832
+"var_95",17010761.4622387
+"var_99",17943892.8820754
+"tvar_99",18432316.8761633
+"historical_total_loss",14922374.8741448
+"mean_minus_historical",0
+"model_expected_loss",14912088.9213354
+"simulation_minus_model_expected",10285.9528094102
+"tail_gap_99",3509942.00201847
+"current_risk_margin_amount",745604.44606677
+"suggested_risk_ratio",0.235375608376143

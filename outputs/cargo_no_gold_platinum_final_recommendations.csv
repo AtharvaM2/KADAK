@@ -1,5 +1,0 @@
-"recommendation_id","recommendation","rationale","implementation_priority"
-"R1","Adopt base cargo cover excluding gold and platinum to reduce concentration risk.","Gold+platinum dominate severity concentration; exclusion stabilizes capital volatility.","High"
-"R2","Offer optional precious-metals catastrophe rider with strict underwriting, high deductible, and co-insurance.","Maintains client flexibility without forcing portfolio-wide risk transfer of extreme tails.","High"
-"R3","Use solar-system specific triggers: debris/route for Helionis, radiation windows for Bayesia, orbital-shear triggers for Oryn Delta.","Aligns product design directly with ENC system characteristics and case-study requirements.","High"
-"R4","Review pricing quarterly with telemetry-based hazard indices and refresh stress/capital metrics.","Supports scalability/adaptability objective and keeps model aligned with changing hazards.","Medium"
