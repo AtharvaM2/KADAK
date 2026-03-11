@@ -27,8 +27,8 @@ recommendations <- data.frame(
 
 write.csv(
   recommendations,
-  "outputs/cargo_no_gold_platinum_final_recommendations.csv",
+  "CL_outputs/cargo_no_gold_platinum_final_recommendations.csv",
   row.names = FALSE
 )
 
-cat("\nNo-gold/platinum cargo pricing workflow complete. Outputs written to outputs/ with prefix cargo_no_gold_platinum_\n")
+cat("\nNo-gold/platinum cargo pricing workflow complete. Outputs written to CL_outputs/ with prefix cargo_no_gold_platinum_\n")

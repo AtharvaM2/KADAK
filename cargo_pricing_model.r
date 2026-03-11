@@ -12,7 +12,7 @@ set.seed(123)
 # =============================
 # Configuration
 # =============================
-expense_ratio <- 0.12
+expense_ratio <- 0.3
 profit_ratio <- 0.07
 risk_ratio <- 0.05
 n_sims <- 50000
@@ -496,10 +496,10 @@ run_stress_suite <- function(fit_obj, output_prefix, n_sim = stress_sims) {
       .groups = "drop"
     )
 
-  write.csv(stress_results, paste0("outputs/", output_prefix, "_stress_test_results.csv"), row.names = FALSE)
-  write.csv(stress_ranges, paste0("outputs/", output_prefix, "_stress_test_ranges.csv"), row.names = FALSE)
+  write.csv(stress_results, paste0("CL_outputs/", output_prefix, "_stress_test_results.csv"), row.names = FALSE)
+  write.csv(stress_ranges, paste0("CL_outputs/", output_prefix, "_stress_test_ranges.csv"), row.names = FALSE)
 
-  png(paste0("outputs/", output_prefix, "_stress_var99.png"), width = 1400, height = 900)
+  png(paste0("CL_outputs/", output_prefix, "_stress_var99.png"), width = 1400, height = 900)
   ggplot(stress_results, aes(x = stress_factor, y = VaR_99, color = test)) +
     geom_line(linewidth = 1) +
     geom_point(size = 1.8) +
@@ -524,7 +524,7 @@ run_cargo_pipeline <- function(
     coverage_note = "",
     run_stress = TRUE
 ) {
-  dir.create("outputs", showWarnings = FALSE)
+  dir.create("CL_outputs", showWarnings = FALSE)
 
   claims <- load_cargo_claims(exclude_types = exclude_types)
   fit_obj <- fit_cargo_models(claims$freq, claims$sev)
@@ -562,7 +562,7 @@ run_cargo_pipeline <- function(
   annual_pure_premium <- pure_premium_rate * fit_obj$total_exposure
   annual_technical_premium <- technical_premium_rate * fit_obj$total_exposure
 
-  source("inflation_forecast.R")
+  source("inflation_forecast_cargo.R")
   econ_projection <- forecast_inflation_and_rates(
     path = "srcsc-2026-interest-and-inflation.xlsx",
     horizon = long_horizon
@@ -900,27 +900,27 @@ run_cargo_pipeline <- function(
   # -----------------------------
   # Write outputs
   # -----------------------------
-  write.csv(baseline_pricing_summary, paste0("outputs/", output_prefix, "_baseline_pricing_summary.csv"), row.names = FALSE)
-  write.csv(frequency_model_diagnostics, paste0("outputs/", output_prefix, "_frequency_model_diagnostics.csv"), row.names = FALSE)
-  write.csv(severity_model_diagnostics, paste0("outputs/", output_prefix, "_severity_model_diagnostics.csv"), row.names = FALSE)
-  write.csv(copula_diagnostics, paste0("outputs/", output_prefix, "_copula_diagnostics.csv"), row.names = FALSE)
-  write.csv(copula_loss_metrics, paste0("outputs/", output_prefix, "_copula_loss_metrics.csv"), row.names = FALSE)
-  write.csv(econ_projection, paste0("outputs/", output_prefix, "_cashflow_projection_10yr.csv"), row.names = FALSE)
-  write.csv(baseline_horizon_summary, paste0("outputs/", output_prefix, "_horizon_summary_baseline.csv"), row.names = FALSE)
-  write.csv(scenario_ranges, paste0("outputs/", output_prefix, "_scenario_ranges.csv"), row.names = FALSE)
-  write.csv(product_design_features, paste0("outputs/", output_prefix, "_product_design_features.csv"), row.names = FALSE)
-  write.csv(threat_table, paste0("outputs/", output_prefix, "_threat_table.csv"), row.names = FALSE)
-  write.csv(solar_system_risk_mapping, paste0("outputs/", output_prefix, "_solar_system_risk_mapping.csv"), row.names = FALSE)
-  write.csv(case_study_checklist, paste0("outputs/", output_prefix, "_case_study_checklist.csv"), row.names = FALSE)
-  write.csv(four_hazard_integration_template, paste0("outputs/", output_prefix, "_four_hazard_integration_template.csv"), row.names = FALSE)
-  write.csv(mc_alignment_check, paste0("outputs/", output_prefix, "_mc_alignment_check.csv"), row.names = FALSE)
+  write.csv(baseline_pricing_summary, paste0("CL_outputs/", output_prefix, "_baseline_pricing_summary.csv"), row.names = FALSE)
+  write.csv(frequency_model_diagnostics, paste0("CL_outputs/", output_prefix, "_frequency_model_diagnostics.csv"), row.names = FALSE)
+  write.csv(severity_model_diagnostics, paste0("CL_outputs/", output_prefix, "_severity_model_diagnostics.csv"), row.names = FALSE)
+  write.csv(copula_diagnostics, paste0("CL_outputs/", output_prefix, "_copula_diagnostics.csv"), row.names = FALSE)
+  write.csv(copula_loss_metrics, paste0("CL_outputs/", output_prefix, "_copula_loss_metrics.csv"), row.names = FALSE)
+  write.csv(econ_projection, paste0("CL_outputs/", output_prefix, "_cashflow_projection_10yr.csv"), row.names = FALSE)
+  write.csv(baseline_horizon_summary, paste0("CL_outputs/", output_prefix, "_horizon_summary_baseline.csv"), row.names = FALSE)
+  write.csv(scenario_ranges, paste0("CL_outputs/", output_prefix, "_scenario_ranges.csv"), row.names = FALSE)
+  write.csv(product_design_features, paste0("CL_outputs/", output_prefix, "_product_design_features.csv"), row.names = FALSE)
+  write.csv(threat_table, paste0("CL_outputs/", output_prefix, "_threat_table.csv"), row.names = FALSE)
+  write.csv(solar_system_risk_mapping, paste0("CL_outputs/", output_prefix, "_solar_system_risk_mapping.csv"), row.names = FALSE)
+  write.csv(case_study_checklist, paste0("CL_outputs/", output_prefix, "_case_study_checklist.csv"), row.names = FALSE)
+  write.csv(four_hazard_integration_template, paste0("CL_outputs/", output_prefix, "_four_hazard_integration_template.csv"), row.names = FALSE)
+  write.csv(mc_alignment_check, paste0("CL_outputs/", output_prefix, "_mc_alignment_check.csv"), row.names = FALSE)
 
   # Keep default cargo filenames updated for report use
   if (output_prefix == "cargo") {
-    write.csv(product_design_features, "outputs/cargo_product_design_features.csv", row.names = FALSE)
+    write.csv(product_design_features, "CL_outputs/cargo_product_design_features.csv", row.names = FALSE)
   }
 
-  png(paste0("outputs/", output_prefix, "_portfolio_loss_distribution.png"), width = 1200, height = 800)
+  png(paste0("CL_outputs/", output_prefix, "_portfolio_loss_distribution.png"), width = 1200, height = 800)
   hist(
     baseline_losses,
     breaks = 100,
@@ -932,7 +932,7 @@ run_cargo_pipeline <- function(
   abline(v = quantile(baseline_losses, 0.99), col = "red", lwd = 2)
   dev.off()
 
-  png(paste0("outputs/", output_prefix, "_copula_loss_distribution.png"), width = 1200, height = 800)
+  png(paste0("CL_outputs/", output_prefix, "_copula_loss_distribution.png"), width = 1200, height = 800)
   hist(
     copula_losses,
     breaks = 100,
@@ -964,5 +964,5 @@ if (sys.nframe() == 0) {
     run_stress = TRUE
   )
 
-  cat("\nCargo pricing workflow complete. Outputs written to outputs/ with prefix cargo_\n")
+  cat("\nCargo pricing workflow complete. Outputs written to CL_outputs/ with prefix cargo_\n")
 }

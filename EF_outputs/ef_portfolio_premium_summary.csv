@@ -1,0 +1,2 @@
+total_units,freq_model,sev_model,portfolio_pure_premium,portfolio_technical_premium,avg_tech_premium_per_unit,obs_total_loss,sim_mean_loss,VaR99,TVaR99,tail_gap_99,sim_vs_model_diff,risk_load_adequate,suggested_risk_load
+4730,POISSON,LOGNORMAL,252451337,420752228.3,88953.95947,253820921.7,253820921.7,274108775.7,277122741.6,23301819.83,1369584.764,FALSE,0.092302224

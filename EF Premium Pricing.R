@@ -11,14 +11,14 @@ library(ismev)
 select <- dplyr::select
 
 set.seed(42)
-dir.create("outputs", showWarnings = FALSE)
+dir.create("EF_outputs", showWarnings = FALSE)
 
 
 # =============================================================================
 # PART A — PARAMETERS
 # =============================================================================
 
-EXPENSE_LOAD  <- 0.12
+EXPENSE_LOAD  <- 0.3
 PROFIT_LOAD   <- 0.07
 RISK_LOAD     <- 0.05
 N_SIMS        <- 200000
@@ -796,7 +796,7 @@ COL_VAR99   <- "#C62828"   # deep red — VaR 99% line
 COL_OBS     <- "#1888fc"   # raspberry — observed total loss line
 COL_QQLINE  <- "#B71C1C"   # dark red — QQ 45-degree reference line
 
-png("outputs/portfolio_loss_distribution_equip.png", width = 1200, height = 800)
+png("EF_outputs/portfolio_loss_distribution_equip.png", width = 1200, height = 800)
 par(bg = COL_BORDER)
 hist(agg_loss, breaks = 100,
      main = "Simulated Aggregate Loss Distribution — Equipment Failure",
@@ -820,7 +820,7 @@ sim_tail_qq <- rgamma(n_qq, shape = tail_gamma_alpha, scale = tail_gamma_beta)
 is_tail_qq  <- rbinom(n_qq, size = 1, prob = tail_prob) == 1
 sim_sev_qq  <- ifelse(is_tail_qq, SPLICE_THRESH + sim_tail_qq, sim_bulk_qq) * anchor_factor
 
-png("outputs/severity_qq_plot_equip.png", width = 1000, height = 1000)
+png("EF_outputs/severity_qq_plot_equip.png", width = 1000, height = 1000)
 par(bg = COL_BORDER)
 plot(
   quantile(df_sev$claim_amount, probs),
@@ -839,15 +839,15 @@ dev.off()
 # PART O — WRITE OUTPUTS
 # =============================================================================
 
-write.csv(baseline_summary,  "outputs/ef_baseline_premium_summary.csv",    row.names = FALSE)
-write.csv(relativities,      "outputs/ef_predictor_loading_table.csv",      row.names = FALSE)
-write.csv(portfolio_by_unit, "outputs/ef_portfolio_premium_by_unit.csv",    row.names = FALSE)
-write.csv(portfolio_summary, "outputs/ef_portfolio_premium_summary.csv",    row.names = FALSE)
-write.csv(projection,        "outputs/ef_premium_projection_10yr.csv",      row.names = FALSE)
-write.csv(risk_metrics,      "outputs/ef_portfolio_risk_metrics.csv",       row.names = FALSE)
-write.csv(freq_diagnostics,  "outputs/ef_frequency_model_diagnostics.csv",  row.names = FALSE)
-write.csv(sev_diagnostics,   "outputs/ef_severity_model_diagnostics.csv",   row.names = FALSE)
-write.csv(loss_validation,   "outputs/ef_loss_validation.csv",              row.names = FALSE)
+write.csv(baseline_summary,  "EF_outputs/ef_baseline_premium_summary.csv",    row.names = FALSE)
+write.csv(relativities,      "EF_outputs/ef_predictor_loading_table.csv",      row.names = FALSE)
+write.csv(portfolio_by_unit, "EF_outputs/ef_portfolio_premium_by_unit.csv",    row.names = FALSE)
+write.csv(portfolio_summary, "EF_outputs/ef_portfolio_premium_summary.csv",    row.names = FALSE)
+write.csv(projection,        "EF_outputs/ef_premium_projection_10yr.csv",      row.names = FALSE)
+write.csv(risk_metrics,      "EF_outputs/ef_portfolio_risk_metrics.csv",       row.names = FALSE)
+write.csv(freq_diagnostics,  "EF_outputs/ef_frequency_model_diagnostics.csv",  row.names = FALSE)
+write.csv(sev_diagnostics,   "EF_outputs/ef_severity_model_diagnostics.csv",   row.names = FALSE)
+write.csv(loss_validation,   "EF_outputs/ef_loss_validation.csv",              row.names = FALSE)
 
 cat("\n--- Equipment Failure Pricing Complete ---\n")
 cat(sprintf("Frequency model       : %s\n", freq_winner))

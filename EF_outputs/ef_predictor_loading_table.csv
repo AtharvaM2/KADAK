@@ -1,0 +1,13 @@
+"variable","variable_key","type","level","is_reference","rep_value","freq_rel","sev_rel","combined_rel","pure_premium","technical_premium"
+"Equipment Age (yrs)","equipment_age","numeric","representative",FALSE,6.38977,1.434464,1.101661,1.580294,8025.931398,13376.55233
+"Equipment Type","equipment_type","categorical","FexStram Carrier",TRUE,NA,1,1,1,5078.758382,8464.597303
+"Equipment Type","equipment_type","categorical","Flux Rider",FALSE,NA,0.859615,1.208128,1.038525,5274.417548,8790.695914
+"Equipment Type","equipment_type","categorical","Graviton Extractor",FALSE,NA,0.713383,1.450181,1.034535,5254.153303,8756.922171
+"Equipment Type","equipment_type","categorical","Ion Pulverizer",FALSE,NA,0.620701,1.704173,1.057781,5372.21412,8953.6902
+"Equipment Type","equipment_type","categorical","Quantum Bore",FALSE,NA,0.588271,2.510418,1.476805,7500.335772,12500.55962
+"Equipment Type","equipment_type","categorical","ReglAggregators",FALSE,NA,0.495661,1.646028,0.815871,4143.61168,6906.019466
+"Maintenance Interval (hrs)","maintenance_int","numeric","representative",FALSE,951.552902,1.228683,0.952688,1.170552,5944.950781,9908.251302
+"Solar System","solar_system","categorical","Epsilon",TRUE,NA,1,1,1,5078.758382,8464.597303
+"Solar System","solar_system","categorical","Helionis Cluster",FALSE,NA,1.493922,0.929688,1.388882,7053.796099,11756.326831
+"Solar System","solar_system","categorical","Zeta",FALSE,NA,0.918425,1.168731,1.073392,5451.498617,9085.831028
+"Usage Intensity (hrs/day)","usage_int","numeric","representative",FALSE,12.00536,1.659543,1.331726,2.210056,11224.340434,18707.234057

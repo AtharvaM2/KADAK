@@ -1,0 +1,11 @@
+"metric","value","label"
+"observed_zero_rate",0.9409979335285,NA
+"zip_zero_rate",0.941178118949343,NA
+"poisson_zero_rate",0.94117790088831,NA
+"zip_aic",20708.0130370563,NA
+"poisson_aic",20706.0130212808,NA
+"zip_bic",20812.968167941,NA
+"poisson_bic",20802.2218912584,NA
+"vuong_statistic",NA,"Vuong test not run"
+"vuong_pvalue",NA,NA
+"selected_model",NA,"POISSON"

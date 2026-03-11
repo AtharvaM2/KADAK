@@ -1,0 +1,16 @@
+"metric","value"
+"obs_total_loss",253820921.737203
+"obs_mean_severity",81904.1373788972
+"baseline_lambda",0.0589403619981558
+"baseline_pi",1
+"baseline_frequency",0.0589403619981558
+"baseline_severity_raw",30996.0320324313
+"anchor_factor",2.77996067308839
+"sev_intercept_adj",1.0224367812314
+"baseline_severity",86167.750071947
+"baseline_pure_premium",5078.75838180717
+"risk_margin",253.937919090359
+"expense_load",0.3
+"profit_load",0.07
+"risk_load",0.05
+"baseline_technical_premium",8464.59730301196
