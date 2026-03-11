@@ -497,6 +497,16 @@ ggplot(copula_df, aes(u, v)) +
   ) +
   theme_minimal()
 
+ggplot(copula_df, aes(u, v)) +
+  geom_point(alpha = 0.3) +
+  coord_cartesian(xlim = c(0, 0.1), ylim = c(0, 0.1)) +
+  labs(
+    title = "Lower Tail Dependence",
+    x = "Frequency Rank (u)",
+    y = "Severity Rank (v)"
+  ) +
+  theme_minimal()
+
 # tail dependence coefficient
 mean(u_sim > 0.95 & v_sim > 0.95)
 
