@@ -451,7 +451,7 @@ lambda(fit_cop@copula)
 
 
 # -----------------------------
-# 10. Fit Copulas
+# 11. Fit Copulas
 # -----------------------------
 
 norm_cop <- normalCopula(param = 0.5, dim = 2) # Gaussian

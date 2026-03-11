@@ -9,6 +9,8 @@ library(tidyr)
 library(stringr)
 library(MASS)
 library(pscl)
+library(tseries)
+library(forecast)
 
 set.seed(123)
 
@@ -429,23 +431,43 @@ library(here)
 econ_raw <- read_excel(here("KADAK", "srcsc-2026-interest-and-inflation.xlsx"), skip = 2)
 
 # Modify the function to accept a dataset
+
 extract_inflation_forecast <- function(data, horizon = 10) {
-  ts_infl <- ts(data$Inflation, start = min(data$Year), frequency = 1)
-  hw_fit <- HoltWinters(ts_infl)
+  
+  # Remove missing inflation values
+  infl <- na.omit(data$Inflation)
+  
+  ts_infl <- ts(infl, frequency = 1)
+  
+  # Holt-Winters without seasonality (annual data)
+  hw_fit <- HoltWinters(ts_infl, gamma = FALSE)
+  
   fc <- forecast::forecast(hw_fit, h = horizon)
-  return(data.frame(
-    Year = (max(data$Year)+1):(max(data$Year)+horizon),
-    Forecast = fc$mean
-  ))
+  
+  data.frame(
+    Year = (max(data$Year) + 1):(max(data$Year) + horizon),
+    Forecast = as.numeric(fc$mean)
+  )
 }
 
 inflation_projection <- extract_inflation_forecast(econ_raw, 10)
 
+
+
 # Long-term: 10-year projection using inflation + discounting
 
 econ_raw <- read_excel("KADAK/srcsc-2026-interest-and-inflation.xlsx", skip = 2)
-rf_projection <- econ_forecast_hw(econ_raw, "1-Year Risk Free Annual Spot Rate", 10)
-inflation_projection <- extract_inflation_forecast(10)
+
+rf_projection <- econ_forecast_hw(
+  econ_raw,
+  "1-Year Risk Free Annual Spot Rate",
+  10
+)
+
+inflation_projection <- extract_inflation_forecast(
+  econ_raw,
+  10
+)
 
 econ_projection <- tibble(
   year = rf_projection$year,
@@ -464,12 +486,17 @@ econ_projection <- tibble(
 # Long-term loss distribution: resample short-term losses and trend by inflation
 years <- nrow(econ_projection)
 loss_samples <- matrix(sample(aggregate_loss, n_sims * years, replace = TRUE), nrow = n_sims)
-loss_scaled <- sweep(loss_samples, 2, econ_projection$severity_trend_factor, "*")
+severity <- as.numeric(econ_projection$severity_trend_factor$Forecast)
+loss_scaled <- sweep(loss_samples, 2, severity, "*")
 long_term_loss <- rowSums(loss_scaled)
 
-annual_premium <- econ_projection$trended_technical_premium
+annual_premium <- as.numeric(econ_projection$trended_technical_premium$Forecast)
+
 annual_expense <- annual_premium * expense_ratio
-annual_net_revenue_samples <- sweep(loss_scaled, 2, annual_premium - annual_expense, "-")
+
+net_premium <- annual_premium - annual_expense
+
+annual_net_revenue_samples <- sweep(loss_scaled, 2, net_premium, "-")
 long_term_net_revenue <- rowSums(annual_net_revenue_samples)
 
 long_term_costs <- range_metrics(long_term_loss) %>% mutate(category = "Costs", horizon = "10-year")
@@ -578,25 +605,27 @@ baseline_premium_summary <- tibble(
 # =============================
 # 10) Write outputs
 # =============================
-dir.create("outputs", showWarnings = FALSE)
 
-write.csv(baseline_premium_summary, "outputs/bi_baseline_premium_summary.csv", row.names = FALSE)
-write.csv(predictor_loading_table, "outputs/bi_predictor_loading_table.csv", row.names = FALSE)
-write.csv(portfolio_premium_by_policy, "outputs/bi_portfolio_premium_by_policy.csv", row.names = FALSE)
-write.csv(portfolio_premium_summary, "outputs/bi_portfolio_premium_summary.csv", row.names = FALSE)
-write.csv(loss_validation, "outputs/bi_loss_validation.csv", row.names = FALSE)
-write.csv(short_term_ranges, "outputs/bi_short_term_ranges.csv", row.names = FALSE)
-write.csv(long_term_ranges, "outputs/bi_long_term_ranges.csv", row.names = FALSE)
-write.csv(long_term_ranges_pv, "outputs/bi_long_term_ranges_pv.csv", row.names = FALSE)
-write.csv(econ_projection, "outputs/bi_econ_projection_10yr.csv", row.names = FALSE)
+# =============================
+# 10) Write outputs
+# =============================
 
-cat("\nBusiness Interruption pricing workflow complete. Files written to outputs/:\n")
-cat("- bi_baseline_premium_summary.csv\n")
-cat("- bi_predictor_loading_table.csv\n")
-cat("- bi_portfolio_premium_by_policy.csv\n")
-cat("- bi_portfolio_premium_summary.csv\n")
-cat("- bi_loss_validation.csv\n")
-cat("- bi_short_term_ranges.csv\n")
-cat("- bi_long_term_ranges.csv\n")
-cat("- bi_long_term_ranges_pv.csv\n")
-cat("- bi_econ_projection_10yr.csv\n")
+# Set working directory
+setwd("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001/KADAK")
+
+# Define outputs folder
+output_dir <- "outputs_bi"  # this will create ACTL4001/KADAK/outputs
+
+# Create the folder if it doesn't exist
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+
+# Write CSVs to the folder using file.path()
+write.csv(baseline_premium_summary, file.path(output_dir, "bi_baseline_premium_summary.csv"), row.names = FALSE)
+write.csv(predictor_loading_table, file.path(output_dir, "bi_predictor_loading_table.csv"), row.names = FALSE)
+write.csv(portfolio_premium_by_policy, file.path(output_dir, "bi_portfolio_premium_by_policy.csv"), row.names = FALSE)
+write.csv(portfolio_premium_summary, file.path(output_dir, "bi_portfolio_premium_summary.csv"), row.names = FALSE)
+write.csv(loss_validation, file.path(output_dir, "bi_loss_validation.csv"), row.names = FALSE)
+write.csv(short_term_ranges, file.path(output_dir, "bi_short_term_ranges.csv"), row.names = FALSE)
+write.csv(long_term_ranges, file.path(output_dir, "bi_long_term_ranges.csv"), row.names = FALSE)
+write.csv(long_term_ranges_pv, file.path(output_dir, "bi_long_term_ranges_pv.csv"), row.names = FALSE)
+write.csv(econ_projection, file.path(output_dir, "bi_econ_projection_10yr.csv"), row.names = FALSE)
