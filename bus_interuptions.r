@@ -238,7 +238,7 @@ gamma_sev_step <- stepAIC(gamma_sev, direction="both")
 
 set.seed(123)
 
-n_sim <- 10000  # number of Monte Carlo iterations
+n_sim <- 1000  # number of Monte Carlo iterations
 
 # Use the NB model predictions
 lambda_hat <- predict(nb_model, type = "response")
@@ -247,6 +247,7 @@ n_pol <- length(lambda_hat)
 
 # Severity parameters (Gamma)
 # Use the mean and dispersion from your gamma model
+
 sev_shape <- 1 / summary(gamma_sev)$dispersion  # shape
 sev_scale <- mean(bi_sev_clean$claim_amount) / sev_shape  # scale
 
@@ -270,6 +271,8 @@ for(s in 1:n_sim){
     aggregate_loss[s] <- 0
   }
 }
+
+aggregate_loss <- aggregate_loss_raw * 0.3380428
 
 # -----------------------------
 # 7. Risk Measures
@@ -442,11 +445,11 @@ for(i in 1:n_sim){
   }
 }
 
-WC_mean_loss <- mean(aggregate_loss)
-WC_sd_loss   <- sd(aggregate_loss)
+BI_mean_loss <- mean(aggregate_loss)
+BI_sd_loss   <- sd(aggregate_loss)
 
-WC_VaR_99  <- quantile(aggregate_loss, 0.99)
-WC_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
+BI_VaR_99  <- quantile(aggregate_loss, 0.99)
+BI_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
 lambda(fit_cop@copula)
 
 
