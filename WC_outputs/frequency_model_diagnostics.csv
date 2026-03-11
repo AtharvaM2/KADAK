@@ -1,6 +1,6 @@
 "metric","value","value_text"
 "historical_zero_rate",0.986021296614346,NA
-"zinb_predicted_zero_rate",0.986079446972961,NA
+"zinb_predicted_zero_rate",0.986079446972875,NA
 "nb_predicted_zero_rate",0.986079298665594,NA
 "zinb_aic",19342.2070948134,NA
 "nb_aic",19339.9909159644,NA

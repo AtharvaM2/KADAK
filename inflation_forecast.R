@@ -1,7 +1,8 @@
 library(forecast)
 library(tsibble)
 library(dplyr)
-
+library(fable)
+library(feasts)
 inflation <- read_excel("srcsc-2026-interest-and-inflation.xlsx")
 colnames(inflation) <- as.character(inflation[2, ])
 inflation <- inflation[- c(1,2), ]
