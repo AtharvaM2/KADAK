@@ -1,0 +1,12 @@
+Summary:
+- PV premiums: 41009976588.54
+- PV losses: 24619395728.79
+- PV expenses: 12302992976.56
+- PV profit: 4087587883.2
+- Recommended reserve: 2760838551 (Expected loss + TVaR margin)
+- Solvent with reserve: YES
+Reference metrics:
+- historical_total_loss: 2650772899
+- tail_gap_99: 108621033
+- current_risk_margin_amount: 132538645
+- suggested_risk_ratio: 0.05

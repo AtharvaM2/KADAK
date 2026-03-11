@@ -17,7 +17,7 @@ set.seed(123)
 # =============================
 # Configuration
 # =============================
-expense_ratio <- 0.12
+expense_ratio <- 0.3
 profit_ratio  <- 0.07
 risk_ratio    <- 0.05
 n_sims        <- 10000
@@ -452,7 +452,7 @@ inflation_projection <- extract_inflation_forecast(econ_raw, 10)
 
 # Long-term: 10-year projection using inflation + discounting
 
-econ_raw <- read_excel("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001/KADAK/srcsc-2026-interest-and-inflation.xlsx", skip = 2)
+#econ_raw <- read_excel("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001/KADAK/srcsc-2026-interest-and-inflation.xlsx", skip = 2)
 
 rf_projection <- econ_forecast_hw(
   econ_raw,
@@ -561,6 +561,7 @@ portfolio_premium_summary <- tibble(
   total_portfolio_technical_premium = total_portfolio_technical,
   historical_total_loss = historical_total_loss,
   expected_loss_simulated = mean(aggregate_loss),
+  var95_simulated = unname(quantile(aggregate_loss, 0.95)),
   var99_simulated = unname(quantile(aggregate_loss, 0.99)),
   tvar99_simulated = mean(aggregate_loss[aggregate_loss >= quantile(aggregate_loss, 0.99)])
 )
@@ -598,12 +599,65 @@ baseline_premium_summary <- tibble(
   )
 )
 
+
+
+# =============================
+# Risk Metrics (Portfolio)
+# =============================
+
+var95 <- unname(quantile(aggregate_loss, 0.95))
+var99 <- unname(quantile(aggregate_loss, 0.99))
+tvar99 <- mean(aggregate_loss[aggregate_loss >= var99])
+
+loss_validation <- tibble(
+  simulated_mean_loss = mean(aggregate_loss),
+  model_expected_loss = total_portfolio_pure,
+  difference = mean(aggregate_loss) - total_portfolio_pure,
+  relative_error_vs_historical =
+    (mean(aggregate_loss) - historical_total_loss) / historical_total_loss
+)
+
+tail_gap_99 <- max(tvar99 - mean(aggregate_loss), 0)
+
+current_risk_margin_amount <- risk_ratio * total_portfolio_pure
+
+risk_adequate <- current_risk_margin_amount >= tail_gap_99
+
+suggested_risk_ratio <- ifelse(
+  total_portfolio_pure > 0,
+  max(risk_ratio, tail_gap_99 / total_portfolio_pure),
+  risk_ratio
+)
+
+portfolio_risk_metrics <- tibble(
+  metric = c(
+    "mean_loss", "sd_loss", "var_95", "var_99", "tvar_99",
+    "historical_total_loss", "mean_minus_historical",
+    "model_expected_loss", "simulation_minus_model_expected",
+    "tail_gap_99", "current_risk_margin_amount", "suggested_risk_ratio"
+  ),
+  value = c(
+    mean(aggregate_loss),
+    sd(aggregate_loss),
+    var95,
+    var99,
+    tvar99,
+    historical_total_loss,
+    mean(aggregate_loss) - historical_total_loss,
+    total_portfolio_pure,
+    mean(aggregate_loss) - total_portfolio_pure,
+    tail_gap_99,
+    current_risk_margin_amount,
+    suggested_risk_ratio
+  )
+)
+
 # =============================
 # 10) Write outputs
 # =============================
 
 # Set working directory
-setwd("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001/KADAK")
+#setwd("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001/KADAK")
 
 # Define outputs folder
 output_dir <- "BI_outputs"  # this will create ACTL4001/KADAK/outputs
@@ -620,3 +674,4 @@ write.csv(short_term_ranges, file.path(output_dir, "bi_short_term_ranges.csv"), 
 write.csv(long_term_ranges, file.path(output_dir, "bi_long_term_ranges.csv"), row.names = FALSE)
 write.csv(long_term_ranges_pv, file.path(output_dir, "bi_long_term_ranges_pv.csv"), row.names = FALSE)
 write.csv(econ_projection, file.path(output_dir, "bi_econ_projection_10yr.csv"), row.names = FALSE)
+write.csv(portfolio_risk_metrics, file.path(output_dir, "bi_portfolio_risk_metrics.csv"), row.names = FALSE)

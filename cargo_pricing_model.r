@@ -895,6 +895,62 @@ run_cargo_pipeline <- function(
       "Use same short/long cost-return-net structure",
       "Use same short/long cost-return-net structure"
     )
+    
+  )
+  
+  # =============================
+  # Portfolio Risk Metrics (Cargo)
+  # =============================
+  
+  var95 <- unname(quantile(baseline_losses, 0.95))
+  var99 <- unname(quantile(baseline_losses, 0.99))
+  tvar99 <- mean(baseline_losses[baseline_losses >= var99])
+  
+  loss_validation <- tibble(
+    simulated_mean_loss = mean(baseline_losses),
+    model_expected_loss = annual_expected_cost,
+    difference = mean(baseline_losses) - annual_expected_cost
+  )
+  
+  tail_gap_99 <- max(tvar99 - mean(baseline_losses), 0)
+  
+  current_risk_margin_amount <- risk_ratio * annual_pure_premium
+  
+  risk_adequate <- current_risk_margin_amount >= tail_gap_99
+  
+  suggested_risk_ratio <- ifelse(
+    annual_pure_premium > 0,
+    max(risk_ratio, tail_gap_99 / annual_pure_premium),
+    risk_ratio
+  )
+  
+  cargo_portfolio_risk_metrics <- tibble(
+    metric = c(
+      "mean_loss",
+      "sd_loss",
+      "var_95",
+      "var_99",
+      "tvar_99",
+      "model_expected_loss",
+      "simulation_minus_model_expected",
+      "tail_gap_99",
+      "current_risk_margin_amount",
+      "risk_margin_adequate",
+      "suggested_risk_ratio"
+    ),
+    value = c(
+      mean(baseline_losses),
+      sd(baseline_losses),
+      var95,
+      var99,
+      tvar99,
+      annual_expected_cost,
+      mean(baseline_losses) - annual_expected_cost,
+      tail_gap_99,
+      current_risk_margin_amount,
+      as.numeric(risk_adequate),
+      suggested_risk_ratio
+    )
   )
 
   # -----------------------------
@@ -914,6 +970,7 @@ run_cargo_pipeline <- function(
   write.csv(case_study_checklist, paste0("CL_outputs/", output_prefix, "_case_study_checklist.csv"), row.names = FALSE)
   write.csv(four_hazard_integration_template, paste0("CL_outputs/", output_prefix, "_four_hazard_integration_template.csv"), row.names = FALSE)
   write.csv(mc_alignment_check, paste0("CL_outputs/", output_prefix, "_mc_alignment_check.csv"), row.names = FALSE)
+  write.csv(cargo_portfolio_risk_metrics, paste0("CL_outputs/", output_prefix, "_portfolio_risk_metrics.csv"), row.names = FALSE)
 
   # Keep default cargo filenames updated for report use
   if (output_prefix == "cargo") {

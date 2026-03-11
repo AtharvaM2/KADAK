@@ -1,0 +1,12 @@
+Summary:
+- PV premiums: 3905662164.58
+- PV losses: 2356110565.28
+- PV expenses: 1171698649.37
+- PV profit: 377852949.93
+- Recommended reserve: 277122741.6 (Expected loss + TVaR margin)
+- Solvent with reserve: YES
+Reference metrics:
+- obs_total_loss: 253820921.7
+- tail_gap_99: 23301819.9
+- current_risk_margin_amount: 277122741.6
+- suggested_risk_ratio: 0.092302224
