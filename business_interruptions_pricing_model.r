@@ -212,9 +212,9 @@ pure_premium_policy_raw <- lambda_hat * sev_hat_policy_raw
 # Anchor so total expected loss aligns to historical total loss
 portfolio_pure_premium_raw <- sum(pure_premium_policy_raw, na.rm = TRUE)
 
-
+severity_anchor_factor <- historical_total_loss / portfolio_pure_premium_raw
 baseline_severity <- baseline_severity_raw 
-sev_hat_policy <- sev_hat_policy_raw
+sev_hat_policy <- sev_hat_policy_raw * severity_anchor_factor
 pure_premium_policy <- lambda_hat * sev_hat_policy
 
 total_portfolio_pure <- sum(pure_premium_policy, na.rm = TRUE)
@@ -328,8 +328,7 @@ for (s in 1:n_sims) {
     aggregate_loss_raw[s] <- 0
   }
 }
-
-aggregate_loss <- aggregate_loss_raw 
+aggregate_loss <- aggregate_loss_raw * severity_anchor_factor
 
 loss_metrics <- range_metrics(aggregate_loss) %>%
   mutate(metric = "baseline_costs")
@@ -377,6 +376,11 @@ stress_ranges <- bind_rows(
   range_metrics(aggregate_loss_stress3) %>% mutate(scenario = "Catastrophic")
 ) %>%
   dplyr::select(scenario, everything())
+
+
+aggregate_loss_stress1 <- aggregate_loss_stress1 * severity_anchor_factor
+aggregate_loss_stress2 <- aggregate_loss_stress2 * severity_anchor_factor
+aggregate_loss_stress3 <- aggregate_loss_stress3 * severity_anchor_factor
 
 # =============================
 # 8) Short-term and long-term ranges
@@ -550,7 +554,7 @@ portfolio_premium_summary <- tibble(
   total_policies = nrow(bi_freq_model),
   baseline_frequency = baseline_frequency,
   baseline_severity_raw = baseline_severity_raw,
-  baseline_severity_anchored = baseline_severity,
+  baseline_severity <- baseline_severity_raw * severity_anchor_factor,
   baseline_pure_premium = baseline_pure_premium,
   baseline_technical_premium = baseline_technical_premium,
   total_portfolio_pure_premium = total_portfolio_pure,
