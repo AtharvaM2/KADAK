@@ -1,2 +1,2 @@
-"total_policies","baseline_frequency","baseline_severity_raw","baseline_severity_anchored","baseline_pure_premium","baseline_technical_premium","total_portfolio_pure_premium","total_portfolio_technical_premium","historical_total_loss","expected_loss_simulated","var99_simulated","tvar99_simulated"
-97287,0.207669593326433,732759.898263776,732759.898263776,152171.950078357,197259.935286759,7841531438.75521,10164948161.3493,2650772899,7845804917.86676,8127430665.43103,8167128274.23537
+"total_policies","baseline_frequency","baseline_severity_raw","baseline_severity <- ...","baseline_pure_premium","baseline_technical_premium","total_portfolio_pure_premium","total_portfolio_technical_premium","historical_total_loss","expected_loss_simulated","var99_simulated","tvar99_simulated"
+97287,0.207669593326437,732759.89826377,247704.175512419,152171.950078358,197259.935286761,2650772899,3436187091.2963,2650772899,2651409510.46028,2737110575.74271,2739414121.09519
