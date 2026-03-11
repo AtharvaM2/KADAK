@@ -238,7 +238,7 @@ gamma_sev_step <- stepAIC(gamma_sev, direction="both")
 
 set.seed(123)
 
-n_sim <- 1000  # number of Monte Carlo iterations
+n_sim <- 10000  # number of Monte Carlo iterations
 
 # Use the NB model predictions
 lambda_hat <- predict(nb_model, type = "response")
@@ -272,7 +272,7 @@ for(s in 1:n_sim){
   }
 }
 
-aggregate_loss <- aggregate_loss_raw * 0.3380428
+aggregate_loss <- aggregate_loss * 0.3380428
 
 # -----------------------------
 # 7. Risk Measures
@@ -296,95 +296,268 @@ print(risk_summary_mc)
 # 8. Stress Tests
 # -----------------------------
 
-set.seed(123)
 
-n_sim <- 1000  # number of Monte Carlo iterations
-n_pol <- length(lambda_hat)  # number of policies
+# Stress Levels
+################################################
 
-stress_factor_freq <- 1.3    # frequency surge
-stress_factor_sev  <- 1.2    # severity inflation
+# Core insurance risks
+freq_levels <- c(1.25,1.5,1.75,2)
+sev_levels  <- c(1.25,1.5,1.75,2)
 
-# Prepare storage for aggregate losses
-aggregate_loss_baseline <- numeric(n_sim)
-aggregate_loss_stress1  <- numeric(n_sim)  # Severity stress
-aggregate_loss_stress2  <- numeric(n_sim)  # Frequency stress
-aggregate_loss_stress3  <- numeric(n_sim)  # Catastrophic (both)
+# Operational risk drivers
+production_levels  <- c(1.1,1.25,1.5,1.75,2)
+energy_levels      <- c(1.1,1.25,1.5,1.75,2)
+supply_levels      <- c(1.1,1.25,1.5,1.75,2)
+maintenance_levels <- c(1.1,1.25,1.5,1.75,2)
 
-for(s in 1:n_sim){
+# Workforce & safety
+crew_levels   <- c(0.6,0.8,1,1.2,1.4)
+safety_levels <- c(0.8,1,1.2,1.4,1.6)
+
+# Portfolio exposure
+exposure_levels <- c(1.25,1.5,1.75,2)
+
+# Financial / inflation
+inflation_levels <- c(1,1.05,1.1,1.15,1.2,1.3,1.4,1.5)
+
+
+# Stress Test Function
+################################################
+
+run_stress_test <- function(stress_levels, variable_name, category){
   
-  # -----------------------------
-  # 1. Simulate baseline frequency
-  # -----------------------------
-  freq_sim <- rnbinom(n_pol, size = theta_hat, mu = lambda_hat)
-  total_claims <- sum(freq_sim)
+  results <- data.frame()
   
-  # Baseline aggregate loss
-  if(total_claims > 0){
-    severities <- rgamma(total_claims, shape = sev_shape, scale = sev_scale)
-    aggregate_loss_baseline[s] <- sum(severities)
+  for(s in stress_levels){
+    
+    ################################
+    # Frequency Stress
+    ################################
+    
+    freq_temp <- rnbinom(n_pol,
+                         size = theta_hat,
+                         mu = lambda_hat * s)
+    
+    loss_freq <- sapply(freq_temp,function(n){
+      
+      if(n==0) return(0)
+      
+      sum(rgamma(n,
+                 shape = sev_shape,
+                 scale = sev_scale))
+      
+    })
+    
+    VaR_freq <- quantile(loss_freq,0.99)
+    
+    ################################
+    # Severity Stress
+    ################################
+    
+    sev_scale_stress <- sev_scale * s
+    
+    loss_sev <- sapply(freq_sim,function(n){
+      
+      if(n==0) return(0)
+      
+      sum(rgamma(n,
+                 shape = sev_shape,
+                 scale = sev_scale_stress))
+      
+    })
+    
+    VaR_sev <- quantile(loss_sev,0.99)
+    
+    ################################
+    # Store results
+    ################################
+    
+    results <- rbind(results,
+                     data.frame(
+                       category = category,
+                       variable = variable_name,
+                       stress_level = s,
+                       mean_loss_frequency = mean(loss_freq),
+                       mean_loss_severity = mean(loss_sev),
+                       VaR99_frequency = VaR_freq,
+                       VaR99_severity = VaR_sev,
+                       TVaR99_frequency = mean(loss_freq[loss_freq > VaR_freq]),
+                       TVaR99_severity = mean(loss_sev[loss_sev > VaR_sev])
+                     ))
+    
   }
   
-  # -----------------------------
-  # 2. Severity stress (increase severity)
-  # -----------------------------
-  if(total_claims > 0){
-    severities_stress <- rgamma(total_claims, shape = sev_shape, scale = sev_scale * stress_factor_sev)
-    aggregate_loss_stress1[s] <- sum(severities_stress)
-  }
+  return(results)
   
-  # -----------------------------
-  # 3. Frequency stress (increase frequency)
-  # -----------------------------
-  freq_stress <- round(freq_sim * stress_factor_freq)
-  total_claims_stress <- sum(freq_stress)
-  
-  if(total_claims_stress > 0){
-    severities_freq_stress <- rgamma(total_claims_stress, shape = sev_shape, scale = sev_scale)
-    aggregate_loss_stress2[s] <- sum(severities_freq_stress)
-  }
-  
-  # -----------------------------
-  # 4. Catastrophic (both frequency & severity stressed)
-  # -----------------------------
-  if(total_claims_stress > 0){
-    severities_cat <- rgamma(total_claims_stress, shape = sev_shape, scale = sev_scale * stress_factor_sev)
-    aggregate_loss_stress3[s] <- sum(severities_cat)
-  }
 }
 
-# -----------------------------
-# 9. Risk Metrics Results
-# -----------------------------
+################################################
+# Core Insurance Risk
+################################################
 
-stress_results <- data.frame(
-  Scenario = c("Baseline","Severity Stress","Frequency Stress","Catastrophic"),
-  VaR99   = c(
-    quantile(aggregate_loss_baseline,0.99),
-    quantile(aggregate_loss_stress1,0.99),
-    quantile(aggregate_loss_stress2,0.99),
-    quantile(aggregate_loss_stress3,0.99)
-  ),
-  TVaR99  = c(
-    mean(aggregate_loss_baseline[aggregate_loss_baseline > quantile(aggregate_loss_baseline,0.99)]),
-    mean(aggregate_loss_stress1[aggregate_loss_stress1 > quantile(aggregate_loss_stress1,0.99)]),
-    mean(aggregate_loss_stress2[aggregate_loss_stress2 > quantile(aggregate_loss_stress2,0.99)]),
-    mean(aggregate_loss_stress3[aggregate_loss_stress3 > quantile(aggregate_loss_stress3,0.99)])
-  )
+freq_results <- run_stress_test(
+  freq_levels,
+  "Claim Frequency",
+  "Core Insurance Risk"
 )
 
-stress_results
+sev_results <- run_stress_test(
+  sev_levels,
+  "Claim Severity",
+  "Core Insurance Risk"
+)
 
-# Catastrophic Loss Histogram
-# -----------------------------
+################################################
+# Operational Risk Drivers
+################################################
 
-hist(aggregate_loss_stress3,
-     breaks = 100,
-     main = "Catastrophic Stress Loss Distribution",
-     xlab = "Aggregate Loss",
-     col = "salmon",
-     border = "white")
+production_results <- run_stress_test(
+  production_levels,
+  "Production Load",
+  "Operational Risk"
+)
 
+energy_results <- run_stress_test(
+  energy_levels,
+  "Energy Backup Score",
+  "Operational Risk"
+)
 
+supply_results <- run_stress_test(
+  supply_levels,
+  "Supply Chain Index",
+  "Operational Risk"
+)
+
+maintenance_results <- run_stress_test(
+  maintenance_levels,
+  "Maintenance Frequency",
+  "Operational Risk"
+)
+
+################################################
+# Workforce & Safety
+################################################
+
+crew_results <- run_stress_test(
+  crew_levels,
+  "Crew Experience",
+  "Workforce Risk"
+)
+
+safety_results <- run_stress_test(
+  safety_levels,
+  "Safety Compliance",
+  "Workforce Risk"
+)
+
+################################################
+# Portfolio Exposure
+################################################
+
+exposure_results <- run_stress_test(
+  exposure_levels,
+  "Exposure Growth",
+  "Portfolio Risk"
+)
+
+################################################
+# Financial Risk
+################################################
+
+inflation_results <- run_stress_test(
+  inflation_levels,
+  "Claims Inflation",
+  "Financial Risk"
+)
+
+################################################
+# Combine All Stress Results
+################################################
+
+stress_results_final <- rbind(
+  
+  freq_results,
+  sev_results,
+  
+  production_results,
+  energy_results,
+  supply_results,
+  maintenance_results,
+  
+  crew_results,
+  safety_results,
+  
+  exposure_results,
+  
+  inflation_results
+  
+)
+
+stress_results_final
+
+################################################
+# Scenario Testing
+################################################
+
+scenario_results <- data.frame()
+
+scenarios <- data.frame(
+  
+  scenario = c("Best Case","Moderate Case","Worst Case"),
+  
+  freq = c(0.75,1.25,2),
+  sev  = c(0.9,1.2,2)
+  
+)
+
+for(i in 1:nrow(scenarios)){
+  
+  row <- scenarios[i,]
+  
+  freq_temp <- rnbinom(n_pol,
+                       size = theta_hat,
+                       mu = lambda_hat * row$freq)
+  
+  sev_scale_stress <- sev_scale * row$sev
+  
+  loss_temp <- sapply(freq_temp,function(n){
+    
+    if(n==0) return(0)
+    
+    sum(rgamma(n,
+               shape = sev_shape,
+               scale = sev_scale_stress))
+    
+  })
+  
+  VaR <- quantile(loss_temp,0.99)
+  
+  scenario_results <- rbind(scenario_results,
+                            data.frame(
+                              scenario = row$scenario,
+                              mean_loss = mean(loss_temp),
+                              VaR99 = VaR,
+                              TVaR99 = mean(loss_temp[loss_temp > VaR])
+                            ))
+  
+}
+
+scenario_results
+
+library(ggplot2)
+
+ggplot(stress_results_final,
+       aes(x = stress_level,
+           y = VaR99_frequency,
+           color = variable)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~category) +
+  theme_minimal() +
+  labs(title="BI Stress Testing by Risk Category",
+       x="Stress Multiplier",
+       y="VaR 99%")
 
 # -----------------------------
 # 10. Tail Dependence
@@ -449,7 +622,7 @@ BI_mean_loss <- mean(aggregate_loss)
 BI_sd_loss   <- sd(aggregate_loss)
 
 BI_VaR_99  <- quantile(aggregate_loss, 0.99)
-BI_TVaR_99 <- mean(aggregate_loss[aggregate_loss > WC_VaR_99])
+BI_TVaR_99 <- mean(aggregate_loss[aggregate_loss > BI_VaR_99])
 lambda(fit_cop@copula)
 
 
@@ -512,4 +685,6 @@ ggplot(copula_df, aes(u, v)) +
 
 # tail dependence coefficient
 mean(u_sim > 0.95 & v_sim > 0.95)
+
+
 
