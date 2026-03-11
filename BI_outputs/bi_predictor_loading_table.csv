@@ -1,0 +1,11 @@
+"predictor","predictor_key","predictor_type","level","is_baseline","representative_value","frequency_loading","severity_loading","premium_loading"
+"avg_crew_exp","avg_crew_exp","numeric","representative_value",FALSE,15.528449,0.967387,1,0.967387
+"energy_backup_score","energy_backup_score","numeric","representative_value",FALSE,3.001295,1.095531,1.016415,1.113514
+"exposure","exposure","numeric","representative_value",FALSE,0.49947,0.49947,0.997373,0.498158
+"maintenance_freq","maintenance_freq","numeric","representative_value",FALSE,2.990112,0.958579,1,0.958579
+"production_load","production_load","numeric","representative_value",FALSE,0.499211,0.991553,1.006207,0.997708
+"safety_compliance","safety_compliance","numeric","representative_value",FALSE,2.997225,1.008383,1.005216,1.013643
+"solar_system","solar_system","categorical","Epsilon",TRUE,NA,1,1,1
+"solar_system","solar_system","categorical","Helionis Cluster",FALSE,NA,0.943863,0.957391,0.903645
+"solar_system","solar_system","categorical","Zeta",FALSE,NA,0.979777,0.977831,0.958056
+"supply_chain_index","supply_chain_index","numeric","representative_value",FALSE,0.498308,1.054581,1,1.054581

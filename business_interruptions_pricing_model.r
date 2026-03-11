@@ -211,14 +211,10 @@ pure_premium_policy_raw <- lambda_hat * sev_hat_policy_raw
 
 # Anchor so total expected loss aligns to historical total loss
 portfolio_pure_premium_raw <- sum(pure_premium_policy_raw, na.rm = TRUE)
-severity_anchor_factor <- ifelse(
-  portfolio_pure_premium_raw > 0,
-  historical_total_loss / portfolio_pure_premium_raw,
-  1
-)
 
-baseline_severity <- baseline_severity_raw * severity_anchor_factor
-sev_hat_policy <- sev_hat_policy_raw * severity_anchor_factor
+
+baseline_severity <- baseline_severity_raw 
+sev_hat_policy <- sev_hat_policy_raw
 pure_premium_policy <- lambda_hat * sev_hat_policy
 
 total_portfolio_pure <- sum(pure_premium_policy, na.rm = TRUE)
@@ -333,7 +329,7 @@ for (s in 1:n_sims) {
   }
 }
 
-aggregate_loss <- aggregate_loss_raw * severity_anchor_factor
+aggregate_loss <- aggregate_loss_raw 
 
 loss_metrics <- range_metrics(aggregate_loss) %>%
   mutate(metric = "baseline_costs")
@@ -373,10 +369,6 @@ for (s in 1:n_sims) {
     aggregate_loss_stress3[s] <- 0
   }
 }
-
-aggregate_loss_stress1 <- aggregate_loss_stress1 * severity_anchor_factor
-aggregate_loss_stress2 <- aggregate_loss_stress2 * severity_anchor_factor
-aggregate_loss_stress3 <- aggregate_loss_stress3 * severity_anchor_factor
 
 stress_ranges <- bind_rows(
   range_metrics(aggregate_loss) %>% mutate(scenario = "Baseline"),
@@ -428,7 +420,7 @@ short_term_ranges <- bind_rows(short_term_costs, short_term_returns, short_term_
 library(readxl)
 library(here)
 
-econ_raw <- read_excel(here("KADAK", "srcsc-2026-interest-and-inflation.xlsx"), skip = 2)
+econ_raw <- read_excel(here("srcsc-2026-interest-and-inflation.xlsx"), skip = 2)
 
 # Modify the function to accept a dataset
 
@@ -456,7 +448,7 @@ inflation_projection <- extract_inflation_forecast(econ_raw, 10)
 
 # Long-term: 10-year projection using inflation + discounting
 
-econ_raw <- read_excel("KADAK/srcsc-2026-interest-and-inflation.xlsx", skip = 2)
+econ_raw <- read_excel("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001/KADAK/srcsc-2026-interest-and-inflation.xlsx", skip = 2)
 
 rf_projection <- econ_forecast_hw(
   econ_raw,
@@ -606,15 +598,11 @@ baseline_premium_summary <- tibble(
 # 10) Write outputs
 # =============================
 
-# =============================
-# 10) Write outputs
-# =============================
-
 # Set working directory
 setwd("C:/Users/khush/OneDrive - UNSW/Desktop/ACTL4001/KADAK")
 
 # Define outputs folder
-output_dir <- "outputs_bi"  # this will create ACTL4001/KADAK/outputs
+output_dir <- "BI_outputs"  # this will create ACTL4001/KADAK/outputs
 
 # Create the folder if it doesn't exist
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
@@ -622,7 +610,6 @@ dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 # Write CSVs to the folder using file.path()
 write.csv(baseline_premium_summary, file.path(output_dir, "bi_baseline_premium_summary.csv"), row.names = FALSE)
 write.csv(predictor_loading_table, file.path(output_dir, "bi_predictor_loading_table.csv"), row.names = FALSE)
-write.csv(portfolio_premium_by_policy, file.path(output_dir, "bi_portfolio_premium_by_policy.csv"), row.names = FALSE)
 write.csv(portfolio_premium_summary, file.path(output_dir, "bi_portfolio_premium_summary.csv"), row.names = FALSE)
 write.csv(loss_validation, file.path(output_dir, "bi_loss_validation.csv"), row.names = FALSE)
 write.csv(short_term_ranges, file.path(output_dir, "bi_short_term_ranges.csv"), row.names = FALSE)
